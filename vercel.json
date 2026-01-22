@@ -1,15 +1,7 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "index.html",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+  "rewrites": [
+    { "source": "/api/admin/products/recent", "destination": "/api/admin/products-recent" },
+    { "source": "/api/admin/products/all", "destination": "/api/admin/products-all" },
+    { "source": "/api/admin/products/import", "destination": "/api/admin/products-import" }
   ]
 }

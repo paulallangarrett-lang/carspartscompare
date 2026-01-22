@@ -1,0 +1,8 @@
+{
+  "name": "carspartscompare",
+  "version": "1.0.0",
+  "description": "UK Car Parts Price Comparison Website",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  }
+}

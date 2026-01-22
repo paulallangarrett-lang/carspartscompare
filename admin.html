@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel | Car Parts Compare</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0f1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a2235;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: #2d3a52;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+        }
+
+        /* Layout */
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            padding: 1.5rem;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sidebar-logo span {
+            color: var(--accent);
+        }
+
+        .sidebar-nav {
+            list-style: none;
+        }
+
+        .sidebar-nav li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .sidebar-nav a:hover,
+        .sidebar-nav a.active {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .sidebar-nav a.active {
+            border-left: 3px solid var(--accent);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 250px;
+            padding: 2rem;
+        }
+
+        .page-header {
+            margin-bottom: 2rem;
+        }
+
+        .page-header h1 {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-header p {
+            color: var(--text-secondary);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .stat-card h3 {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: var(--bg-card);
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            background: var(--bg-card);
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-header h2 {
+            font-size: 1.1rem;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        td {
+            font-size: 0.95rem;
+        }
+
+        tr:hover {
+            background: var(--bg-secondary);
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        select.form-control {
+            cursor: pointer;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-muted);
+            color: var(--text-primary);
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        /* File Upload */
+        .file-upload {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-upload:hover {
+            border-color: var(--accent);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .file-upload p {
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        /* Back link */
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .back-link:hover {
+            color: var(--text-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                Car<span>Parts</span>Compare
+            </div>
+            <nav>
+                <ul class="sidebar-nav">
+                    <li><a href="#dashboard" class="active" onclick="showSection('dashboard')">📊 Dashboard</a></li>
+                    <li><a href="#products" onclick="showSection('products')">📦 Products</a></li>
+                    <li><a href="#import" onclick="showSection('import')">📥 Import Feed</a></li>
+                    <li><a href="#retailers" onclick="showSection('retailers')">🏪 Retailers</a></li>
+                    <li><a href="#categories" onclick="showSection('categories')">📁 Categories</a></li>
+                    <li><a href="/" target="_blank">🌐 View Site</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="section active">
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <p>Overview of your car parts comparison site</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Products</h3>
+                        <div class="value" id="stat-products">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Retailers</h3>
+                        <div class="value" id="stat-retailers">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Categories</h3>
+                        <div class="value" id="stat-categories">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>VRM Lookups</h3>
+                        <div class="value" id="stat-vehicles">-</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Quick Actions</h2>
+                    </div>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="showSection('products')">Add Product</button>
+                        <button class="btn btn-success" onclick="showSection('import')">Import Feed</button>
+                        <button class="btn btn-secondary" onclick="showSection('retailers')">Manage Retailers</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Recent Products</h2>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Brand</th>
+                                    <th>Price</th>
+                                    <th>Retailer</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-products">
+                                <tr><td colspan="4">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Products Section -->
+            <section id="products" class="section" style="display: none;">
+                <div class="page-header">
+                    <h1>Products</h1>
+                    <p>Manage your product catalog</p>
+                </div>
+
+                <div class="alert alert-success" id="product-success"></div>
+                <div class="alert alert-error" id="product-error"></div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Add New Product</h2>
+                    </div>
+                    <form id="product-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Retailer</label>
+                                <select class="form-control" id="product-retailer" required>
+                                    <option value="">Select retailer...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Category</label>
+                                <select class="form-control" id="product-category" required>
+                                    <option value="">Select category...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Product Name</label>
+                            <input type="text" class="form-control" id="product-name" placeholder="e.g. Front Brake Pads Set" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Price (£)</label>
+                                <input type="number" step="0.01" class="form-control" id="product-price" placeholder="29.99" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Brand</label>
+                                <input type="text" class="form-control" id="product-brand" placeholder="e.g. Brembo">
+                            </div>
+                            <div class="form-group">
+                                <label>Part Number</label>
+                                <input type="text" class="form-control" id="product-partnum" placeholder="e.g. P85075">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Product URL</label>
+                            <input type="url" class="form-control" id="product-url" placeholder="https://...">
+                        </div>
+                        <h3 style="margin: 1.5rem 0 1rem; font-size: 1rem;">Vehicle Compatibility</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Make</label>
+                                <input type="text" class="form-control" id="product-make" placeholder="e.g. Ford">
+                            </div>
+                            <div class="form-group">
+                                <label>Model</label>
+                                <input type="text" class="form-control" id="product-model" placeholder="e.g. Focus">
+                            </div>
+                            <div class="form-group">
+                                <label>Year From</label>
+                                <input type="number" class="form-control" id="product-year-from" placeholder="2015">
+                            </div>
+                            <div class="form-group">
+                                <label>Year To</label>
+                                <input type="number" class="form-control" id="product-year-to" placeholder="2023">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Product</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>All Products</h2>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Brand</th>
+                                    <th>Price</th>
+                                    <th>Retailer</th>
+                                    <th>Category</th>
+                                </tr>
+                            </thead>
+                            <tbody id="products-table">
+                                <tr><td colspan="6">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Import Section -->
+            <section id="import" class="section" style="display: none;">
+                <div class="page-header">
+                    <h1>Import Product Feed</h1>
+                    <p>Upload CSV files to bulk import products</p>
+                </div>
+
+                <div class="alert alert-success" id="import-success"></div>
+                <div class="alert alert-error" id="import-error"></div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Upload CSV</h2>
+                    </div>
+                    <div class="form-row" style="margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label>Retailer</label>
+                            <select class="form-control" id="import-retailer" required>
+                                <option value="">Select retailer...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select class="form-control" id="import-category" required>
+                                <option value="">Select category...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <label class="file-upload" id="file-upload">
+                        <input type="file" id="csv-file" accept=".csv">
+                        <div>📁 Click to upload CSV file</div>
+                        <p>or drag and drop</p>
+                    </label>
+                    <div id="file-name" style="margin-top: 1rem; color: var(--text-secondary);"></div>
+                    <button class="btn btn-success" style="margin-top: 1rem;" onclick="importCSV()">Import Products</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>CSV Format</h2>
+                    </div>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">Your CSV should have these columns:</p>
+                    <code style="display: block; background: var(--bg-secondary); padding: 1rem; border-radius: 8px; overflow-x: auto;">
+                        name,price,brand,part_number,url,image_url,make,model,year_from,year_to
+                    </code>
+                    <p style="color: var(--text-muted); margin-top: 1rem; font-size: 0.9rem;">
+                        Example: Front Brake Pads,29.99,Brembo,P85075,https://...,https://...,Ford,Focus,2015,2023
+                    </p>
+                </div>
+            </section>
+
+            <!-- Retailers Section -->
+            <section id="retailers" class="section" style="display: none;">
+                <div class="page-header">
+                    <h1>Retailers</h1>
+                    <p>Manage your affiliate retailers</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>All Retailers</h2>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Website</th>
+                                    <th>Affiliate ID</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="retailers-table">
+                                <tr><td colspan="5">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Categories Section -->
+            <section id="categories" class="section" style="display: none;">
+                <div class="page-header">
+                    <h1>Categories</h1>
+                    <p>Manage product categories</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>All Categories</h2>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Icon</th>
+                                    <th>Name</th>
+                                    <th>Slug</th>
+                                    <th>Sort Order</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categories-table">
+                                <tr><td colspan="5">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+            document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+            
+            document.getElementById(sectionId).style.display = 'block';
+            document.querySelector(`[href="#${sectionId}"]`).classList.add('active');
+            
+            // Load data for section
+            if (sectionId === 'dashboard') loadDashboard();
+            if (sectionId === 'products') loadProducts();
+            if (sectionId === 'retailers') loadRetailers();
+            if (sectionId === 'categories') loadCategories();
+        }
+
+        // Load Dashboard
+        async function loadDashboard() {
+            try {
+                const stats = await fetch('/api/admin/stats').then(r => r.json());
+                document.getElementById('stat-products').textContent = stats.products;
+                document.getElementById('stat-retailers').textContent = stats.retailers;
+                document.getElementById('stat-categories').textContent = stats.categories;
+                document.getElementById('stat-vehicles').textContent = stats.vehicles;
+                
+                // Load recent products
+                const products = await fetch('/api/admin/products/recent').then(r => r.json());
+                const tbody = document.getElementById('recent-products');
+                if (products.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4">No products yet</td></tr>';
+                } else {
+                    tbody.innerHTML = products.map(p => `
+                        <tr>
+                            <td>${p.name}</td>
+                            <td>${p.brand || '-'}</td>
+                            <td>£${p.price.toFixed(2)}</td>
+                            <td>${p.retailer_name}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        // Load Products
+        async function loadProducts() {
+            try {
+                // Load dropdowns
+                await loadDropdowns();
+                
+                // Load products table
+                const products = await fetch('/api/admin/products/all').then(r => r.json());
+                const tbody = document.getElementById('products-table');
+                if (products.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6">No products yet</td></tr>';
+                } else {
+                    tbody.innerHTML = products.map(p => `
+                        <tr>
+                            <td>${p.id}</td>
+                            <td>${p.name}</td>
+                            <td>${p.brand || '-'}</td>
+                            <td>£${p.price.toFixed(2)}</td>
+                            <td>${p.retailer_name}</td>
+                            <td>${p.category_name}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+
+        // Load Retailers
+        async function loadRetailers() {
+            try {
+                const retailers = await fetch('/api/retailers').then(r => r.json());
+                const tbody = document.getElementById('retailers-table');
+                tbody.innerHTML = retailers.map(r => `
+                    <tr>
+                        <td>${r.id}</td>
+                        <td>${r.name}</td>
+                        <td><a href="${r.website}" target="_blank" style="color: var(--accent);">${r.website}</a></td>
+                        <td>${r.affiliate_id || '<span style="color: var(--text-muted);">Not set</span>'}</td>
+                        <td><span class="badge badge-success">Active</span></td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading retailers:', error);
+            }
+        }
+
+        // Load Categories
+        async function loadCategories() {
+            try {
+                const categories = await fetch('/api/categories').then(r => r.json());
+                const tbody = document.getElementById('categories-table');
+                tbody.innerHTML = categories.map(c => `
+                    <tr>
+                        <td>${c.id}</td>
+                        <td>${c.icon}</td>
+                        <td>${c.name}</td>
+                        <td>${c.slug}</td>
+                        <td>${c.sort_order}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        // Load Dropdowns
+        async function loadDropdowns() {
+            const retailers = await fetch('/api/retailers').then(r => r.json());
+            const categories = await fetch('/api/categories').then(r => r.json());
+            
+            const retailerSelects = ['product-retailer', 'import-retailer'];
+            const categorySelects = ['product-category', 'import-category'];
+            
+            retailerSelects.forEach(id => {
+                const select = document.getElementById(id);
+                if (select) {
+                    select.innerHTML = '<option value="">Select retailer...</option>' +
+                        retailers.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+                }
+            });
+            
+            categorySelects.forEach(id => {
+                const select = document.getElementById(id);
+                if (select) {
+                    select.innerHTML = '<option value="">Select category...</option>' +
+                        categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+                }
+            });
+        }
+
+        // Add Product Form
+        document.getElementById('product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const product = {
+                retailer_id: parseInt(document.getElementById('product-retailer').value),
+                category_id: parseInt(document.getElementById('product-category').value),
+                name: document.getElementById('product-name').value,
+                price: parseFloat(document.getElementById('product-price').value),
+                brand: document.getElementById('product-brand').value,
+                part_number: document.getElementById('product-partnum').value,
+                url: document.getElementById('product-url').value,
+                compatibility: []
+            };
+            
+            const make = document.getElementById('product-make').value;
+            const model = document.getElementById('product-model').value;
+            if (make && model) {
+                product.compatibility.push({
+                    make: make,
+                    model: model,
+                    year_from: parseInt(document.getElementById('product-year-from').value) || null,
+                    year_to: parseInt(document.getElementById('product-year-to').value) || null
+                });
+            }
+            
+            try {
+                const response = await fetch('/api/admin/products', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(product)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('product-success', 'Product added successfully!');
+                    document.getElementById('product-form').reset();
+                    loadProducts();
+                } else {
+                    showAlert('product-error', result.error || 'Failed to add product');
+                }
+            } catch (error) {
+                showAlert('product-error', 'Error adding product');
+            }
+        });
+
+        // File Upload
+        document.getElementById('csv-file').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('file-name').textContent = `Selected: ${file.name}`;
+            }
+        });
+
+        // Import CSV
+        async function importCSV() {
+            const file = document.getElementById('csv-file').files[0];
+            const retailerId = document.getElementById('import-retailer').value;
+            const categoryId = document.getElementById('import-category').value;
+            
+            if (!file || !retailerId || !categoryId) {
+                showAlert('import-error', 'Please select a file, retailer, and category');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const csv = e.target.result;
+                const lines = csv.split('\n');
+                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                
+                const products = [];
+                for (let i = 1; i < lines.length; i++) {
+                    if (!lines[i].trim()) continue;
+                    
+                    const values = lines[i].split(',');
+                    const product = {
+                        retailer_id: parseInt(retailerId),
+                        category_id: parseInt(categoryId)
+                    };
+                    
+                    headers.forEach((header, index) => {
+                        const value = values[index]?.trim();
+                        if (header === 'price') {
+                            product.price = parseFloat(value) || 0;
+                        } else if (header === 'year_from' || header === 'year_to') {
+                            product[header] = parseInt(value) || null;
+                        } else {
+                            product[header] = value;
+                        }
+                    });
+                    
+                    if (product.name && product.price) {
+                        products.push(product);
+                    }
+                }
+                
+                try {
+                    const response = await fetch('/api/admin/products/import', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ products })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showAlert('import-success', `Successfully imported ${result.imported} products!`);
+                        document.getElementById('csv-file').value = '';
+                        document.getElementById('file-name').textContent = '';
+                    } else {
+                        showAlert('import-error', result.error || 'Import failed');
+                    }
+                } catch (error) {
+                    showAlert('import-error', 'Error importing products');
+                }
+            };
+            
+            reader.readAsText(file);
+        }
+
+        // Show Alert
+        function showAlert(id, message) {
+            const alert = document.getElementById(id);
+            alert.textContent = message;
+            alert.classList.add('show');
+            setTimeout(() => alert.classList.remove('show'), 5000);
+        }
+
+        // Initial load
+        loadDashboard();
+        loadDropdowns();
+    </script>
+</body>
+</html>
