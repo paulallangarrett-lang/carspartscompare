@@ -797,6 +797,85 @@
         }
 
         /* Responsive */
+        /* Email Capture Section */
+        .email-capture {
+            background: linear-gradient(135deg, #0066cc 0%, #004499 100%);
+            padding: 3rem 1rem;
+        }
+
+        .email-capture-inner {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .email-content h2 {
+            color: white;
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .email-content p {
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 1.5rem;
+        }
+
+        .email-form {
+            display: flex;
+            gap: 0.5rem;
+            max-width: 450px;
+            margin: 0 auto;
+        }
+
+        .email-form input {
+            flex: 1;
+            padding: 0.875rem 1rem;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: rgba(255,255,255,0.95);
+        }
+
+        .email-form input:focus {
+            outline: none;
+            border-color: white;
+        }
+
+        .email-form button {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 0.875rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+
+        .email-form button:hover {
+            background: var(--success-hover);
+        }
+
+        .email-form button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .email-disclaimer {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.8rem;
+            margin-top: 1rem;
+        }
+
+        .email-success {
+            color: #90EE90 !important;
+        }
+
+        .email-error {
+            color: #ff6b6b !important;
+        }
+
         /* Loading States */
         .loading-state {
             display: flex;
@@ -1286,6 +1365,23 @@
             .footer-grid {
                 grid-template-columns: 1fr;
             }
+            
+            /* Email capture mobile */
+            .email-capture {
+                padding: 2rem 1rem;
+            }
+            
+            .email-content h2 {
+                font-size: 1.4rem;
+            }
+            
+            .email-form {
+                flex-direction: column;
+            }
+            
+            .email-form button {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -1431,6 +1527,20 @@
                     <p>We only compare prices from the UK's most trusted retailers.</p>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <section class="email-capture">
+        <div class="email-capture-inner">
+            <div class="email-content">
+                <h2>🔔 Get Price Drop Alerts</h2>
+                <p>Be the first to know when prices drop on parts for your car. No spam, just savings.</p>
+            </div>
+            <form class="email-form" onsubmit="subscribeEmail(event)">
+                <input type="email" id="email-input" placeholder="Enter your email" required>
+                <button type="submit" id="subscribe-btn">Notify Me</button>
+            </form>
+            <p class="email-disclaimer" id="email-message"></p>
         </div>
     </section>
 
@@ -1821,6 +1931,48 @@
             document.querySelector('.why-compare').style.display = 'block';
             document.querySelector('.retailers-section').style.display = 'block';
             location.reload();
+        }
+
+        async function subscribeEmail(e) {
+            e.preventDefault();
+            const emailInput = document.getElementById('email-input');
+            const btn = document.getElementById('subscribe-btn');
+            const message = document.getElementById('email-message');
+            const email = emailInput.value.trim();
+
+            if (!email) return;
+
+            btn.disabled = true;
+            btn.textContent = 'Subscribing...';
+            message.textContent = '';
+            message.className = 'email-disclaimer';
+
+            try {
+                const response = await fetch('/api/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, source: 'homepage' })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (data.alreadyExists) {
+                        message.textContent = "You're already subscribed! We'll keep you posted.";
+                    } else {
+                        message.textContent = '✓ Success! We\'ll notify you of price drops.';
+                    }
+                    message.className = 'email-disclaimer email-success';
+                    emailInput.value = '';
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                message.textContent = 'Something went wrong. Please try again.';
+                message.className = 'email-disclaimer email-error';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Notify Me';
+            }
         }
     </script>
 </body>
