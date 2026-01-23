@@ -2,6 +2,10 @@
   "rewrites": [
     { "source": "/api/admin/products/recent", "destination": "/api/admin/products-recent" },
     { "source": "/api/admin/products/all", "destination": "/api/admin/products-all" },
-    { "source": "/api/admin/products/import", "destination": "/api/admin/products-import" }
+    { "source": "/api/admin/products/import", "destination": "/api/admin/products-import" },
+    { "source": "/ford-focus-brake-pads", "destination": "/ford-focus-brake-pads.html" },
+    { "source": "/vauxhall-corsa-oil-filter", "destination": "/vauxhall-corsa-oil-filter.html" },
+    { "source": "/vw-golf-brake-pads", "destination": "/vw-golf-brake-pads.html" },
+    { "source": "/bmw-3-series-battery", "destination": "/bmw-3-series-battery.html" }
   ]
 }
