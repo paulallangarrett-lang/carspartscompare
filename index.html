@@ -797,6 +797,99 @@
         }
 
         /* Responsive */
+        /* Loading States */
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            background: var(--bg-white);
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .loading-state p {
+            margin-top: 1rem;
+            color: var(--text-medium);
+            font-size: 1rem;
+        }
+        
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .error-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            background: var(--bg-white);
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .error-state .error-icon {
+            width: 60px;
+            height: 60px;
+            background: #fee2e2;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+        
+        .error-state .error-icon svg {
+            width: 30px;
+            height: 30px;
+            stroke: #dc2626;
+        }
+        
+        .error-state h3 {
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+        
+        .error-state p {
+            color: var(--text-medium);
+            margin-bottom: 1.5rem;
+        }
+        
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .skeleton-card {
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .skeleton-line {
+            height: 16px;
+            margin-bottom: 0.75rem;
+        }
+        
+        .skeleton-line.short { width: 40%; }
+        .skeleton-line.medium { width: 70%; }
+        .skeleton-line.full { width: 100%; }
+
         /* ===================== */
         /* MOBILE RESPONSIVE    */
         /* ===================== */
@@ -1531,9 +1624,13 @@
             try {
                 const response = await fetch(`/api/vehicle?vrm=${encodeURIComponent(vrm)}`);
                 const vehicle = await response.json();
-                if (vehicle.error) { alert('Vehicle not found.'); }
+                if (vehicle.error) { 
+                    showError('Vehicle Not Found', 'We couldn\'t find a vehicle with that registration. Please check and try again.', 'Try Again', resetSearch);
+                }
                 else { currentVehicle = vehicle; showVehicleResult(vehicle); }
-            } catch (error) { alert('Something went wrong.'); }
+            } catch (error) { 
+                showError('Connection Error', 'We couldn\'t connect to our servers. Please check your internet and try again.', 'Try Again', resetSearch);
+            }
             finally {
                 btn.disabled = false;
                 btn.innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg> Find Parts';
@@ -1541,6 +1638,48 @@
         });
 
         vrmInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('search-btn').click(); });
+
+        function showError(title, message, buttonText, buttonAction) {
+            document.getElementById('search-box').innerHTML = `
+                <div class="error-state">
+                    <div class="error-icon">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <h3>${title}</h3>
+                    <p>${message}</p>
+                    <button class="btn-confirm" onclick="${buttonAction.name}()">${buttonText}</button>
+                </div>
+            `;
+        }
+
+        function showLoading(message) {
+            document.getElementById('search-box').innerHTML = `
+                <div class="loading-state">
+                    <svg class="spinner" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#0066cc" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" opacity="0.3"/>
+                        <path d="M12 2a10 10 0 0 1 10 10"/>
+                    </svg>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function showSkeleton() {
+            return `
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-line medium"></div>
+                    <div class="skeleton skeleton-line full"></div>
+                    <div class="skeleton skeleton-line short"></div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-line medium"></div>
+                    <div class="skeleton skeleton-line full"></div>
+                    <div class="skeleton skeleton-line short"></div>
+                </div>
+            `;
+        }
 
         function showVehicleResult(vehicle) {
             document.getElementById('search-box').innerHTML = `
@@ -1565,6 +1704,7 @@
         }
 
         async function showPartsCategories() {
+            showLoading('Loading parts categories...');
             try {
                 const response = await fetch('/api/categories');
                 const categories = await response.json();
@@ -1582,12 +1722,14 @@
                         <button class="btn-back" onclick="resetSearch()">← Start over</button>
                     </div>
                 `;
-            } catch (error) { alert('Failed to load categories.'); }
+            } catch (error) { 
+                showError('Failed to Load', 'We couldn\'t load the parts categories. Please try again.', 'Try Again', showPartsCategories);
+            }
         }
 
         async function searchParts(categorySlug, categoryName) {
             const searchBox = document.getElementById('search-box');
-            searchBox.innerHTML = '<div class="loading-state"><svg class="spinner" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0066cc" stroke-width="2"><circle cx="12" cy="12" r="10" opacity="0.3"/><path d="M12 2a10 10 0 0 1 10 10"/></svg><p>Finding the best prices...</p></div>';
+            showLoading('Finding the best prices for your ' + currentVehicle.make + ' ' + currentVehicle.model + '...');
             document.querySelector('.main-content').style.display = 'none';
             document.querySelector('.why-compare').style.display = 'none';
             document.querySelector('.retailers-section').style.display = 'none';
@@ -1597,11 +1739,36 @@
                 const response = await fetch(`/api/products?${params}`);
                 const parts = await response.json();
                 if (parts.length === 0) {
-                    searchBox.innerHTML = `<div class="comparison-results"><div class="results-header"><button class="btn-back" onclick="showPartsCategories()">← Back</button><h3>${categoryName}</h3></div><div style="text-align:center;padding:3rem;background:white;border-radius:12px;"><p>No parts found for your ${currentVehicle.make} ${currentVehicle.model}.</p><button class="btn-confirm" style="margin-top:1rem;" onclick="showPartsCategories()">Try another category</button></div></div>`;
+                    searchBox.innerHTML = `
+                        <div class="error-state">
+                            <div class="error-icon" style="background: #fef3c7;">
+                                <svg fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                                </svg>
+                            </div>
+                            <h3>No Parts Found</h3>
+                            <p>We couldn't find ${categoryName.toLowerCase()} for your ${currentVehicle.make} ${currentVehicle.model}.<br>Try a different category or check back later.</p>
+                            <button class="btn-confirm" onclick="showPartsCategories()">Browse Other Parts</button>
+                        </div>
+                    `;
                     return;
                 }
                 showComparisonResults(categorySlug, categoryName, parts);
-            } catch (error) { searchBox.innerHTML = '<div style="text-align:center;padding:3rem;"><p>Something went wrong.</p><button class="btn-confirm" onclick="showPartsCategories()">Try Again</button></div>'; }
+            } catch (error) { 
+                searchBox.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-icon">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                        <h3>Something Went Wrong</h3>
+                        <p>We couldn't load the prices. Please try again.</p>
+                        <button class="btn-confirm" onclick="searchParts('${categorySlug}', '${categoryName}')">Try Again</button>
+                        <button class="btn-retry" style="margin-top: 0.5rem;" onclick="showPartsCategories()">Back to Categories</button>
+                    </div>
+                `;
+            }
         }
 
         function showComparisonResults(categorySlug, categoryName, parts) {
