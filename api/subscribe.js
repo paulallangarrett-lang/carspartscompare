@@ -25,27 +25,29 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Valid email required' });
     }
 
-    // Check if email already exists
-    const { data: existing } = await supabase
+    // Check if email already exists (use maybeSingle to avoid error when not found)
+    const { data: existing, error: selectError } = await supabase
       .from('email_subscribers')
       .select('id')
       .eq('email', email.toLowerCase())
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return res.status(200).json({ message: 'Already subscribed', alreadyExists: true });
     }
 
     // Insert new subscriber
-    const { error } = await supabase
+    const { error: insertError } = await supabase
       .from('email_subscribers')
       .insert({
         email: email.toLowerCase(),
-        source: source || 'homepage',
-        subscribed_at: new Date().toISOString()
+        source: source || 'homepage'
       });
 
-    if (error) throw error;
+    if (insertError) {
+      console.error('Insert error:', insertError);
+      return res.status(500).json({ error: 'Failed to subscribe', details: insertError.message });
+    }
 
     return res.status(200).json({ message: 'Subscribed successfully' });
   } catch (error) {
