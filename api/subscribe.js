@@ -1,11 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
   'https://fvawakrizcmgkkoqdjer.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2YXdha3JpemNtZ2trb3FkamVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc2Njg4NjcsImV4cCI6MjA2MzI0NDg2N30.Ej8pGTdNeaEbay_kkC_RGYwPv5V06UlSKOnMESDs5Tw'
+  'sb_publishable__TpEKk1ZW535Q7hzK5vTpg_JcfpPzpd'
 );
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
