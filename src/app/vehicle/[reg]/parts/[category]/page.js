@@ -75,7 +75,7 @@ export default function PartsPage() {
         <span className="mx-2">›</span>
         <Link href={`/vehicle/${reg}`} className="hover:text-blue-600">{vehicle?.make} {vehicle?.model}</Link>
         <span className="mx-2">›</span>
-        {dept && <><span className="hover:text-blue-600">{dept.name}</span><span className="mx-2">›</span></>}
+        {dept && <><Link href={`/vehicle/${reg}`} className="hover:text-blue-600">{dept.name}</Link><span className="mx-2">›</span></>}
         <span className="text-gray-600">{cat?.name}</span>
       </nav>
 
