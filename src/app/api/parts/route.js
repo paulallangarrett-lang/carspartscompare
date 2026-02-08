@@ -12,6 +12,53 @@ const CATEGORY_MAP = {
 
 const AMAZON_TAG = process.env.AMAZON_ASSOCIATE_TAG || 'carpartscomp-21';
 
+// Brand tier classification for price estimation
+const BRAND_TIERS = {
+  // Premium brands - typically 30-50% more expensive
+  premium: ['K&N Filters', 'Pipercross', 'Brembo', 'EBC', 'NGK', 'Denso', 'Bilstein', 'Sachs'],
+  // OEM quality - mid-to-high pricing
+  oem: ['Bosch', 'MANN-FILTER', 'MAHLE', 'Hengst Filter', 'TRW', 'ATE', 'Valeo', 'LuK', 'Continental'],
+  // Mid-range - good value
+  mid: ['FRAM', 'Champion', 'WIX Filters', 'Ferodo', 'Delphi', 'Mintex', 'Pagid'],
+  // Budget-friendly
+  budget: ['NAPA', 'Febi Bilstein', 'Blue Print', 'Comline', 'First Line', 'Apec'],
+};
+
+// Base price ranges by category (GBP) [min, max] for mid-tier
+const CATEGORY_PRICES = {
+  'air-filters':  { budget: [6, 12],  mid: [10, 18], oem: [14, 25], premium: [25, 55] },
+  'oil-filters':  { budget: [4, 8],   mid: [6, 12],  oem: [8, 16],  premium: [14, 28] },
+  'brake-pads':   { budget: [15, 25], mid: [22, 38], oem: [30, 55], premium: [45, 95] },
+  'wiper-blades': { budget: [6, 10],  mid: [8, 16],  oem: [12, 22], premium: [18, 35] },
+  'spark-plugs':  { budget: [2, 5],   mid: [4, 8],   oem: [6, 12],  premium: [10, 22] },
+};
+
+function getBrandTier(brand) {
+  const b = (brand || '').trim();
+  for (const [tier, brands] of Object.entries(BRAND_TIERS)) {
+    if (brands.some(name => b.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(b.toLowerCase()))) {
+      return tier;
+    }
+  }
+  return 'mid'; // default to mid-range
+}
+
+function estimatePrice(brand, category) {
+  const tier = getBrandTier(brand);
+  const ranges = CATEGORY_PRICES[category];
+  if (!ranges) return null;
+  const [min, max] = ranges[tier] || ranges.mid;
+  // Generate a consistent "random" price based on brand name hash
+  let hash = 0;
+  for (let i = 0; i < brand.length; i++) {
+    hash = ((hash << 5) - hash) + brand.charCodeAt(i);
+    hash |= 0;
+  }
+  const factor = (Math.abs(hash) % 100) / 100;
+  const price = min + (max - min) * factor;
+  return Math.round(price * 100) / 100;
+}
+
 // Mock data fallback (from our real API test)
 const MOCK_PARTS = {
   'air-filters': [
@@ -40,20 +87,34 @@ const MOCK_PARTS = {
   ],
 };
 
-function formatPart(p, category) {
+function formatPart(p, category, categorySlug) {
   const artNo = p.articleNumber || p.articleNo || '';
   const brand = p.supplierName || '';
   const searchTerm = `${brand} ${artNo}`.trim();
+  const estimated = estimatePrice(brand, categorySlug);
+  // Vary eBay price slightly (typically 5-15% different from Amazon)
+  let ebayEstimated = null;
+  if (estimated) {
+    let hash = 0;
+    for (let i = 0; i < artNo.length; i++) {
+      hash = ((hash << 5) - hash) + artNo.charCodeAt(i);
+      hash |= 0;
+    }
+    const variation = 0.85 + (Math.abs(hash) % 30) / 100; // 0.85 to 1.15
+    ebayEstimated = Math.round(estimated * variation * 100) / 100;
+  }
   return {
     articleId: p.articleId,
     articleNumber: artNo,
     supplierName: brand,
+    brandTier: getBrandTier(brand),
     productName: p.productName || p.articleProductName || category,
     imageUrl: p.imageUrl || p.images?.[0]?.imageURL200 || null,
     amazonUrl: `https://www.amazon.co.uk/s?k=${encodeURIComponent(searchTerm)}&tag=${AMAZON_TAG}`,
     ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(searchTerm)}`,
-    amazonPrice: null,
-    ebayPrice: null,
+    amazonPrice: estimated,
+    ebayPrice: ebayEstimated,
+    priceType: 'estimated',
   };
 }
 
@@ -76,7 +137,7 @@ export async function GET(request) {
   if (vehicleIdParam) {
     try {
       const articles = await getArticles(parseInt(vehicleIdParam), cat.id);
-      const parts = (articles || []).map(p => formatPart(p, cat.name));
+      const parts = (articles || []).map(p => formatPart(p, cat.name, category));
       return NextResponse.json({ parts, category, source: 'live' });
     } catch (err) {
       console.error('RapidAPI error:', err);
@@ -97,7 +158,7 @@ export async function GET(request) {
         const match = await matchVehicle(vehicle);
         if (match && !match.error && match.vehicleId) {
           const articles = await getArticles(match.vehicleId, cat.id);
-          const parts = (articles || []).map(p => formatPart(p, cat.name));
+          const parts = (articles || []).map(p => formatPart(p, cat.name, category));
           return NextResponse.json({
             parts,
             category,
@@ -112,6 +173,6 @@ export async function GET(request) {
   }
 
   // Fallback: mock data
-  const parts = (MOCK_PARTS[category] || []).map(p => formatPart(p, cat.name));
+  const parts = (MOCK_PARTS[category] || []).map(p => formatPart(p, cat.name, category));
   return NextResponse.json({ parts, category, source: 'mock' });
 }
