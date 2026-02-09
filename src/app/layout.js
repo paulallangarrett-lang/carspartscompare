@@ -34,12 +34,14 @@ export default function RootLayout({ children }) {
                 <p className="leading-relaxed">Compare car parts prices across Amazon, eBay and specialist UK retailers. Find the right part for your vehicle at the best price.</p>
               </div>
               <div>
-                <h4 className="text-white font-semibold mb-3">Popular Categories</h4>
+                <h4 className="text-white font-semibold mb-3">Popular Makes</h4>
                 <div className="space-y-2">
-                  <a href="/car-parts" className="block hover:text-white transition">Air Filters</a>
-                  <a href="/car-parts" className="block hover:text-white transition">Oil Filters</a>
-                  <a href="/car-parts" className="block hover:text-white transition">Brake Pads</a>
-                  <a href="/car-parts" className="block hover:text-white transition">Spark Plugs</a>
+                  <a href="/car-parts/ford" className="block hover:text-white transition">Ford Parts</a>
+                  <a href="/car-parts/vauxhall" className="block hover:text-white transition">Vauxhall Parts</a>
+                  <a href="/car-parts/volkswagen" className="block hover:text-white transition">Volkswagen Parts</a>
+                  <a href="/car-parts/bmw" className="block hover:text-white transition">BMW Parts</a>
+                  <a href="/car-parts/audi" className="block hover:text-white transition">Audi Parts</a>
+                  <a href="/car-parts/toyota" className="block hover:text-white transition">Toyota Parts</a>
                 </div>
               </div>
               <div>
