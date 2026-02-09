@@ -1,13 +1,53 @@
 import Link from 'next/link';
+import JsonLd from '@/components/JsonLd';
 
 export const metadata = {
   title: 'Car Battery Buying Guide for UK Drivers | CarPartsCompare',
   description: 'CCA ratings, battery sizes, AGM vs EFB explained. How to choose the right replacement car battery for your vehicle and UK climate. Expert guide with price tips.',
 };
 
+const faqData = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'What types of car battery are there?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Three types: Conventional lead-acid (£55-£100) for cars without start-stop. EFB/Enhanced Flooded Battery (£80-£130) for basic start-stop systems. AGM/Absorbent Glass Mat (£100-£180) for advanced start-stop and high electrical demand vehicles like BMW and Mercedes.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'What does CCA mean on a car battery?',
+      acceptedAnswer: { '@type': 'Answer', text: 'CCA stands for Cold Cranking Amps — it measures how much current the battery can deliver at -18°C for 30 seconds. Always match or exceed your car\'s original CCA rating. Higher CCA gives more cold-weather starting margin.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'How long does a car battery last?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Most car batteries last 4-6 years in UK conditions. Signs of failure include slow cranking, dimming headlights at idle, electrical glitches, and needing a jump start. Test annually from age 3+, especially before winter.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'What is battery registration?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Modern BMW, Mini, Audi and Mercedes models need the battery management system told when a new battery is fitted, using a diagnostic tool. Without registration, the alternator may overcharge or undercharge the new battery.' },
+    },
+  ],
+};
+
+const breadcrumbData = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://carpartscompare.uk' },
+    { '@type': 'ListItem', position: 2, name: 'Buying Guides', item: 'https://carpartscompare.uk/guides' },
+    { '@type': 'ListItem', position: 3, name: 'Car Batteries', item: 'https://carpartscompare.uk/guides/car-batteries' },
+  ],
+};
+
 export default function CarBatteriesGuide() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
+      <JsonLd data={faqData} />
+      <JsonLd data={breadcrumbData} />
       <nav className="text-sm text-gray-400 mb-6">
         <Link href="/" className="hover:text-blue-600">Home</Link>
         <span className="mx-2">›</span>

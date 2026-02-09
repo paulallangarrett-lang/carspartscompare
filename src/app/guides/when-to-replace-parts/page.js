@@ -1,13 +1,53 @@
 import Link from 'next/link';
+import JsonLd from '@/components/JsonLd';
 
 export const metadata = {
   title: 'When to Replace Common Car Parts — Service Intervals Guide | CarPartsCompare',
   description: 'A practical guide to car part replacement intervals and warning signs. Know when to change brake pads, filters, batteries, belts, and other common parts.',
 };
 
+const faqData = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'How often should I change my oil and oil filter?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Every 10,000-20,000 miles or 12-24 months, whichever comes first. Always replace the filter with the oil. If in doubt, changing annually is good practice.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'When should I replace my timing belt?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Every 40,000-100,000 miles or 4-5 years, whichever comes first. This varies hugely by engine — always check your manufacturer specification. A snapped timing belt on an interference engine destroys the engine.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'How long do brake pads last?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Typically 25,000-60,000 miles depending on driving style. City driving wears pads much faster than motorway cruising. Front pads wear faster than rears in a roughly 2:1 ratio.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'How often should I replace my car battery?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Every 4-6 years. Test annually from age 3+, especially before winter. Signs of failure include slow cranking, dimming headlights, and electrical glitches.' },
+    },
+  ],
+};
+
+const breadcrumbData = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://carpartscompare.uk' },
+    { '@type': 'ListItem', position: 2, name: 'Buying Guides', item: 'https://carpartscompare.uk/guides' },
+    { '@type': 'ListItem', position: 3, name: 'When to Replace Parts', item: 'https://carpartscompare.uk/guides/when-to-replace-parts' },
+  ],
+};
+
 export default function WhenToReplaceGuide() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
+      <JsonLd data={faqData} />
+      <JsonLd data={breadcrumbData} />
       <nav className="text-sm text-gray-400 mb-6">
         <Link href="/" className="hover:text-blue-600">Home</Link>
         <span className="mx-2">›</span>

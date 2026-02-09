@@ -1,13 +1,48 @@
 import Link from 'next/link';
+import JsonLd from '@/components/JsonLd';
 
 export const metadata = {
   title: 'How to Save Money on Car Parts in the UK | CarPartsCompare',
   description: 'Smart strategies for finding cheap car parts without sacrificing quality. Learn about brand tiers, price comparison, and when budget parts are fine vs when to spend more.',
 };
 
+const faqData = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'How can I save money on car parts?',
+      acceptedAnswer: { '@type': 'Answer', text: 'The biggest saving comes from comparing prices across retailers — the same part can vary 50-85% in price. Also understand brand tiers (budget vs OEM vs premium), buy parts yourself for garage fitting, time purchases around sales, and learn simple DIY jobs.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'Is it safe to buy cheap car parts?',
+      acceptedAnswer: { '@type': 'Answer', text: 'It depends on the part. Wiper blades, cabin filters, and bulbs are fine to buy budget. But brake pads, oil filters, timing belts, and suspension components should be mid-range or OEM quality minimum — cheap versions can compromise safety or cause expensive damage.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'Can I supply my own parts to a garage?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Many independent garages will happily fit parts you supply. You pay their labour rate but save on the parts markup, which can be 50-100% above trade price. Call ahead and ask. Most will agree as long as the parts are correct specification.' },
+    },
+  ],
+};
+
+const breadcrumbData = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://carpartscompare.uk' },
+    { '@type': 'ListItem', position: 2, name: 'Buying Guides', item: 'https://carpartscompare.uk/guides' },
+    { '@type': 'ListItem', position: 3, name: 'Save Money on Parts', item: 'https://carpartscompare.uk/guides/saving-money-car-parts' },
+  ],
+};
+
 export default function SavingMoneyGuide() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
+      <JsonLd data={faqData} />
+      <JsonLd data={breadcrumbData} />
       <nav className="text-sm text-gray-400 mb-6">
         <Link href="/" className="hover:text-blue-600">Home</Link>
         <span className="mx-2">›</span>

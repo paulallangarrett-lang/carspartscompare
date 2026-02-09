@@ -1,13 +1,48 @@
 import Link from 'next/link';
+import JsonLd from '@/components/JsonLd';
 
 export const metadata = {
   title: 'Best Wiper Blades: A Complete Buying Guide | CarPartsCompare',
   description: 'Conventional vs flat wiper blades, sizing, top UK brands, and fitting tips. Find the best replacement wiper blades for your car at the cheapest price.',
 };
 
+const faqData = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'What types of wiper blade are there?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Three types: Conventional/standard blades (£8-£18/pair) with a metal frame. Flat/beam blades (£12-£30/pair) which are frameless and more aerodynamic, now standard on most new cars. Hybrid blades (£15-£35/pair) which combine both designs.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'How often should I replace wiper blades?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Replace every 12 months, or sooner if you notice streaking, smearing, squeaking, or juddering. UV light and temperature changes degrade the rubber over time. Autumn is the ideal time to replace them before winter.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'What are the best wiper blade brands?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Bosch dominates the UK market with their Aerotwin flat blades. Valeo Silencio range is excellent. Denso makes outstanding hybrid blades. HELLA offers good mid-range options. Avoid very cheap unbranded blades as the rubber quality is poor.' },
+    },
+  ],
+};
+
+const breadcrumbData = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://carpartscompare.uk' },
+    { '@type': 'ListItem', position: 2, name: 'Buying Guides', item: 'https://carpartscompare.uk/guides' },
+    { '@type': 'ListItem', position: 3, name: 'Wiper Blades', item: 'https://carpartscompare.uk/guides/wiper-blades' },
+  ],
+};
+
 export default function WiperBladesGuide() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
+      <JsonLd data={faqData} />
+      <JsonLd data={breadcrumbData} />
       <nav className="text-sm text-gray-400 mb-6">
         <Link href="/" className="hover:text-blue-600">Home</Link>
         <span className="mx-2">›</span>

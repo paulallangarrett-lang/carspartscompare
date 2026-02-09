@@ -17,6 +17,31 @@ export default function RootLayout({ children }) {
       </head>
       <body className="bg-gray-50 min-h-screen flex flex-col">
         <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebSite',
+              name: 'CarPartsCompare',
+              url: 'https://carpartscompare.uk',
+              description: 'Compare car parts prices across Amazon, eBay and specialist UK retailers.',
+              potentialAction: {
+                '@type': 'SearchAction',
+                target: 'https://carpartscompare.uk/vehicle/{search_term_string}',
+                'query-input': 'required name=search_term_string',
+              },
+            }) }}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: 'CarPartsCompare',
+              url: 'https://carpartscompare.uk',
+              description: 'UK car parts price comparison. Compare prices from Amazon, eBay and specialist retailers.',
+            }) }}
+          />
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
             <a href="/" className="flex items-center gap-1.5">
               <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

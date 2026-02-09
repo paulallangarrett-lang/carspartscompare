@@ -1,13 +1,64 @@
 import Link from 'next/link';
+import JsonLd from '@/components/JsonLd';
 
 export const metadata = {
   title: 'How to Choose the Right Brake Pads — Buying Guide | CarPartsCompare',
   description: 'Ceramic vs organic vs semi-metallic brake pads explained. Learn which type suits your car, driving style and budget. Expert UK buying guide with price comparisons.',
 };
 
+const faqData = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'What are the different types of brake pads?',
+      acceptedAnswer: { '@type': 'Answer', text: 'There are three main types: Organic (NAO) pads are quietest and cheapest (£15-£35/axle) but wear faster. Semi-metallic pads offer the best balance of performance and durability (£25-£55/axle). Ceramic pads last longest, produce least dust, and run quietly (£40-£95/axle) but cost more.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'When should I replace my brake pads?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Most brake pads last 25,000-60,000 miles. Replace them when you hear squealing or grinding, the car pulls to one side when braking, the pedal feels soft, or a warning light appears. The legal minimum thickness is 1.5mm but mechanics recommend replacing at 3mm.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'Should I replace brake discs at the same time as pads?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Not always. Brake discs typically last 2-3 sets of pads. Replace them if there is a visible lip around the edge, deep score marks, or the thickness is below the minimum stamped on the disc. Fitting new pads on worn discs reduces performance.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'What are the best brake pad brands in the UK?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Premium brands include Brembo, EBC, and Ferodo Racing. OEM-quality brands include TRW, Bosch, and Delphi. Mid-range options like Mintex and Pagid offer good value. Budget brands meet minimum standards but may wear faster.' },
+    },
+  ],
+};
+
+const articleData = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: 'How to Choose the Right Brake Pads',
+  description: 'Ceramic vs organic vs semi-metallic brake pads explained. Learn which type suits your car, driving style and budget.',
+  publisher: { '@type': 'Organization', name: 'CarPartsCompare', url: 'https://carpartscompare.uk' },
+  datePublished: '2026-02-09',
+  dateModified: '2026-02-09',
+};
+
+const breadcrumbData = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://carpartscompare.uk' },
+    { '@type': 'ListItem', position: 2, name: 'Buying Guides', item: 'https://carpartscompare.uk/guides' },
+    { '@type': 'ListItem', position: 3, name: 'Brake Pads', item: 'https://carpartscompare.uk/guides/brake-pads' },
+  ],
+};
+
 export default function BrakePadsGuide() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
+      <JsonLd data={faqData} />
+      <JsonLd data={articleData} />
+      <JsonLd data={breadcrumbData} />
       <nav className="text-sm text-gray-400 mb-6">
         <Link href="/" className="hover:text-blue-600">Home</Link>
         <span className="mx-2">›</span>

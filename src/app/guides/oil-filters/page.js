@@ -1,13 +1,48 @@
 import Link from 'next/link';
+import JsonLd from '@/components/JsonLd';
 
 export const metadata = {
   title: 'Oil Filter Buying Guide — What You Need to Know | CarPartsCompare',
   description: 'Everything UK drivers need to know about oil filters: types, brands, change intervals, and how to find the right one for your car at the best price.',
 };
 
+const faqData = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'What types of oil filter are there?',
+      acceptedAnswer: { '@type': 'Answer', text: 'There are two main types: Spin-on filters (£4-£15) are self-contained metal canisters that screw onto the engine, common on Ford and Vauxhall models. Cartridge/element filters (£5-£18) are replaceable paper elements inside a reusable housing, common on BMW, Audi, and VW.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'How often should I change my oil filter?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Every time you change your oil — the filter should always be replaced with the oil, not on alternate changes. Most manufacturers specify 10,000-20,000 miles or 12-24 months, whichever comes first.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'What are the best oil filter brands?',
+      acceptedAnswer: { '@type': 'Answer', text: 'MANN-FILTER is the market leader and OEM supplier to most German manufacturers. MAHLE is another major OEM supplier. Bosch offers excellent all-round filters at competitive prices. FRAM and Champion are solid mid-range options.' },
+    },
+  ],
+};
+
+const breadcrumbData = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://carpartscompare.uk' },
+    { '@type': 'ListItem', position: 2, name: 'Buying Guides', item: 'https://carpartscompare.uk/guides' },
+    { '@type': 'ListItem', position: 3, name: 'Oil Filters', item: 'https://carpartscompare.uk/guides/oil-filters' },
+  ],
+};
+
 export default function OilFiltersGuide() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
+      <JsonLd data={faqData} />
+      <JsonLd data={breadcrumbData} />
       <nav className="text-sm text-gray-400 mb-6">
         <Link href="/" className="hover:text-blue-600">Home</Link>
         <span className="mx-2">›</span>
