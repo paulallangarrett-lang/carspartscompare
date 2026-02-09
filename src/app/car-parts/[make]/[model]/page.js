@@ -75,14 +75,15 @@ export default async function ModelPage({ params }) {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
               {dept.categories.map((cat) => (
-                <div
+                <Link
                   key={cat.slug}
-                  className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col items-center text-center"
+                  href={`/car-parts/${make.slug}/${model.slug}/${cat.slug}`}
+                  className="group bg-white border border-gray-200 rounded-xl p-4 flex flex-col items-center text-center hover:border-blue-300 hover:shadow-md transition"
                 >
-                  <span className="text-3xl mb-2">{cat.icon}</span>
-                  <span className="text-sm font-medium text-gray-800">{cat.name}</span>
-                  <span className="text-xs text-gray-400 mt-1">From £{(Math.floor(Math.random() * 30) + 5).toFixed(2)}</span>
-                </div>
+                  <span className="text-3xl mb-2 group-hover:scale-110 transition-transform">{cat.icon}</span>
+                  <span className="text-sm font-medium text-gray-800 group-hover:text-blue-700">{cat.name}</span>
+                  <span className="text-xs text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">Compare prices →</span>
+                </Link>
               ))}
             </div>
           </section>

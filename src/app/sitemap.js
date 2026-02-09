@@ -1,6 +1,9 @@
 import { UK_MAKES } from '@/lib/uk-cars';
+import { DEPARTMENTS } from '@/lib/categories';
 
 const BASE_URL = 'https://carpartscompare.uk';
+
+const allCategories = DEPARTMENTS.flatMap(d => d.categories);
 
 export default function sitemap() {
   const now = new Date().toISOString();
@@ -32,5 +35,17 @@ export default function sitemap() {
     }))
   );
 
-  return [...staticPages, ...makePages, ...modelPages];
+  // Category pages: /car-parts/ford/focus/brake-pads, etc.
+  const categoryPages = UK_MAKES.flatMap((make) =>
+    make.models.flatMap((model) =>
+      allCategories.map((cat) => ({
+        url: `${BASE_URL}/car-parts/${make.slug}/${model.slug}/${cat.slug}`,
+        lastModified: now,
+        changeFrequency: 'weekly',
+        priority: 0.6,
+      }))
+    )
+  );
+
+  return [...staticPages, ...makePages, ...modelPages, ...categoryPages];
 }
