@@ -1,14 +1,25 @@
 import './globals.css';
+import Script from 'next/script';
 
 export const metadata = {
   title: 'Car Parts Compare UK — Find the Cheapest Car Parts',
   description: 'Compare car parts prices across Amazon, eBay and more. Enter your reg plate to find compatible parts at the best prices.',
 };
 
+const ADSENSE_ID = process.env.NEXT_PUBLIC_ADSENSE_ID;
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="bg-gray-50 min-h-screen flex flex-col">
+        {ADSENSE_ID && (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_ID}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
             <a href="/" className="flex items-center gap-1.5">
@@ -21,6 +32,7 @@ export default function RootLayout({ children }) {
             <nav className="hidden md:flex gap-6 text-sm font-medium text-gray-600">
               <a href="/" className="hover:text-blue-600 transition">Home</a>
               <a href="/car-parts" className="hover:text-blue-600 transition">Browse Parts</a>
+              <a href="/guides" className="hover:text-blue-600 transition">Guides</a>
               <a href="/about" className="hover:text-blue-600 transition">About</a>
             </nav>
           </div>
@@ -28,7 +40,7 @@ export default function RootLayout({ children }) {
         <main className="flex-1">{children}</main>
         <footer className="bg-gray-900 text-gray-400">
           <div className="max-w-6xl mx-auto px-4 py-10">
-            <div className="grid md:grid-cols-3 gap-8 text-sm">
+            <div className="grid md:grid-cols-4 gap-8 text-sm">
               <div>
                 <h4 className="text-white font-semibold mb-3">CarPartsCompare</h4>
                 <p className="leading-relaxed">Compare car parts prices across Amazon, eBay and specialist UK retailers. Find the right part for your vehicle at the best price.</p>
@@ -45,6 +57,17 @@ export default function RootLayout({ children }) {
                 </div>
               </div>
               <div>
+                <h4 className="text-white font-semibold mb-3">Buying Guides</h4>
+                <div className="space-y-2">
+                  <a href="/guides/brake-pads" className="block hover:text-white transition">Brake Pads Guide</a>
+                  <a href="/guides/oil-filters" className="block hover:text-white transition">Oil Filters Guide</a>
+                  <a href="/guides/car-batteries" className="block hover:text-white transition">Car Batteries Guide</a>
+                  <a href="/guides/wiper-blades" className="block hover:text-white transition">Wiper Blades Guide</a>
+                  <a href="/guides/when-to-replace-parts" className="block hover:text-white transition">Replacement Intervals</a>
+                  <a href="/guides/saving-money-car-parts" className="block hover:text-white transition">Save Money on Parts</a>
+                </div>
+              </div>
+              <div>
                 <h4 className="text-white font-semibold mb-3">Information</h4>
                 <div className="space-y-2">
                   <a href="/about" className="block hover:text-white transition">About Us</a>
@@ -54,7 +77,7 @@ export default function RootLayout({ children }) {
               </div>
             </div>
             <div className="border-t border-gray-800 mt-8 pt-6 text-xs text-gray-500">
-              <p>&copy; {new Date().getFullYear()} CarPartsCompare.co.uk — As an Amazon Associate and eBay Partner, we earn from qualifying purchases.</p>
+              <p>&copy; {new Date().getFullYear()} CarPartsCompare.uk — As an Amazon Associate and eBay Partner, we earn from qualifying purchases.</p>
             </div>
           </div>
         </footer>
