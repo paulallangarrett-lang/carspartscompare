@@ -1,6 +1,6 @@
 import { UK_MAKES } from '@/lib/uk-cars';
 
-const BASE_URL = 'https://www.carpartscompare.co.uk';
+const BASE_URL = 'https://carpartscompare.uk';
 
 export default function sitemap() {
   const now = new Date().toISOString();
