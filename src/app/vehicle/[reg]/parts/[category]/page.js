@@ -28,6 +28,11 @@ export default function PartsPage() {
         const vRes = await fetch(`/api/lookup?reg=${reg}`);
         const vData = await vRes.json();
         if (vData.error) { setError(vData.error); setLoading(false); return; }
+        // Pick up user-selected model from sessionStorage
+        if (!vData.model && typeof window !== 'undefined') {
+          const storedModel = sessionStorage.getItem(`vehicle_model_${reg.toUpperCase()}`);
+          if (storedModel) vData.model = storedModel;
+        }
         setVehicle(vData);
 
         const pRes = await fetch(`/api/parts?reg=${reg}&category=${category}`);

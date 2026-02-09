@@ -33,6 +33,7 @@ export async function GET(request) {
           reg,
           make: data.make,
           model: data.model || '',
+          modelFromDvla: !!data.model,
           yearOfManufacture: data.yearOfManufacture,
           fuelType: data.fuelType,
           engineCapacity: data.engineCapacity,
