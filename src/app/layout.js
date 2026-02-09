@@ -1,25 +1,21 @@
 import './globals.css';
-import Script from 'next/script';
 
 export const metadata = {
   title: 'Car Parts Compare UK — Find the Cheapest Car Parts',
   description: 'Compare car parts prices across Amazon, eBay and more. Enter your reg plate to find compatible parts at the best prices.',
 };
 
-const ADSENSE_ID = process.env.NEXT_PUBLIC_ADSENSE_ID;
-
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3599505006694500"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className="bg-gray-50 min-h-screen flex flex-col">
-        {ADSENSE_ID && (
-          <Script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_ID}`}
-            crossOrigin="anonymous"
-            strategy="afterInteractive"
-          />
-        )}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
             <a href="/" className="flex items-center gap-1.5">
