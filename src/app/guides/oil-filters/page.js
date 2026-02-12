@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import GuideFooterLinks from '@/components/GuideFooterLinks';
 import JsonLd from '@/components/JsonLd';
 
 export const metadata = {
@@ -151,6 +152,7 @@ export default function OilFiltersGuide() {
             Enter Your Reg Plate →
           </Link>
         </div>
+        <GuideFooterLinks categorySlug="oil-filters" categoryName="Oil Filters" additionalCategories={[{slug:"air-filters",name:"Air Filters"},{slug:"cabin-filters",name:"Cabin Filters"},{slug:"fuel-filters",name:"Fuel Filters"}]} />
       </article>
     </div>
   );

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { UK_MAKES, TOTAL_MAKES, TOTAL_MODELS } from '@/lib/uk-cars';
 import { DEPARTMENTS } from '@/lib/categories';
+import { TOP_UK_MODELS } from '@/lib/internal-links';
 
 const totalCategories = DEPARTMENTS.reduce((sum, d) => sum + d.categories.length, 0);
 
@@ -44,23 +45,56 @@ export default function BrowsePartsPage() {
         ))}
       </div>
 
-      {/* Popular categories */}
+      {/* Popular models quick links */}
       <div className="mt-12">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Popular Part Categories</h2>
-        <div className="flex flex-wrap gap-2">
-          {DEPARTMENTS.flatMap(d => d.categories).slice(0, 15).map(cat => (
-            <span
-              key={cat.slug}
-              className="bg-gray-100 text-gray-600 text-sm px-3 py-1.5 rounded-full"
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Most Popular Models</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          {TOP_UK_MODELS.map(m => (
+            <Link
+              key={`${m.makeSlug}-${m.modelSlug}`}
+              href={`/car-parts/${m.makeSlug}/${m.modelSlug}`}
+              className="bg-white border border-gray-200 rounded-lg p-3 text-center hover:border-blue-300 hover:shadow-sm transition"
             >
-              {cat.icon} {cat.name}
-            </span>
+              <span className="text-sm font-medium text-gray-800 block">{m.make} {m.model}</span>
+              <span className="text-xs text-blue-600">Browse parts →</span>
+            </Link>
           ))}
         </div>
       </div>
 
+      {/* Popular categories */}
+      <div className="mt-10">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Popular Part Categories</h2>
+        <p className="text-sm text-gray-500 mb-3">Pick a category and model to jump straight to price comparisons.</p>
+        <div className="flex flex-wrap gap-2">
+          {DEPARTMENTS.flatMap(d => d.categories).slice(0, 15).map(cat => (
+            <Link
+              key={cat.slug}
+              href={`/car-parts/ford/focus/${cat.slug}`}
+              className="bg-gray-100 text-gray-600 text-sm px-3 py-1.5 rounded-full hover:bg-blue-50 hover:text-blue-700 transition"
+            >
+              {cat.icon} {cat.name}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Buying guides */}
+      <div className="mt-10 bg-blue-50 border border-blue-200 rounded-xl p-6">
+        <h2 className="text-xl font-bold text-blue-900 mb-3">📖 Buying Guides</h2>
+        <p className="text-sm text-blue-700 mb-4">Not sure what parts you need? Our expert guides cover everything from choosing the right brake pads to saving money on car maintenance.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <Link href="/guides/brake-pads" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">🛞 Brake Pads Guide</Link>
+          <Link href="/guides/oil-filters" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">🛢️ Oil Filters Guide</Link>
+          <Link href="/guides/car-batteries" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">🔋 Car Batteries Guide</Link>
+          <Link href="/guides/wiper-blades" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">🌧️ Wiper Blades Guide</Link>
+          <Link href="/guides/when-to-replace-parts" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">🔧 Replacement Intervals</Link>
+          <Link href="/guides/saving-money-car-parts" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">💰 Save Money Guide</Link>
+        </div>
+      </div>
+
       {/* SEO content */}
-      <div className="mt-12 prose prose-gray max-w-none">
+      <div className="mt-10 prose prose-gray max-w-none">
         <h2 className="text-xl font-bold text-gray-900">Car Parts Price Comparison</h2>
         <p className="text-gray-600 text-sm leading-relaxed">
           CarPartsCompare helps UK drivers find the right parts at the best prices. Whether you need brake pads for a Ford Focus, 

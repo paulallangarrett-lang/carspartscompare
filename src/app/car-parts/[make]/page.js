@@ -85,6 +85,36 @@ export default async function MakePage({ params }) {
           {make.name} parts suppliers to help you save money on servicing and repairs. All parts are matched to your specific vehicle for guaranteed compatibility.
         </p>
       </div>
+
+      {/* Other makes */}
+      <div className="mt-8 bg-gray-50 rounded-xl p-6">
+        <h3 className="font-bold text-gray-900 mb-3">Browse Other Makes</h3>
+        <div className="flex flex-wrap gap-2">
+          {UK_MAKES.filter(m => m.slug !== make.slug).slice(0, 20).map(m => (
+            <Link
+              key={m.slug}
+              href={`/car-parts/${m.slug}`}
+              className="bg-white border border-gray-200 text-gray-700 text-sm px-3 py-1.5 rounded-full hover:border-blue-300 hover:text-blue-700 transition"
+            >
+              {m.name}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Buying guides */}
+      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-6">
+        <h3 className="font-bold text-blue-900 mb-3">📖 Buying Guides</h3>
+        <p className="text-sm text-blue-700 mb-4">Our expert guides help you choose the right parts and save money.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <Link href="/guides/brake-pads" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">🛞 Brake Pads Guide</Link>
+          <Link href="/guides/oil-filters" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">🛢️ Oil Filters Guide</Link>
+          <Link href="/guides/car-batteries" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">🔋 Car Batteries Guide</Link>
+          <Link href="/guides/wiper-blades" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">🌧️ Wiper Blades Guide</Link>
+          <Link href="/guides/when-to-replace-parts" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">🔧 Replacement Intervals</Link>
+          <Link href="/guides/saving-money-car-parts" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">💰 Save Money Guide</Link>
+        </div>
+      </div>
     </div>
   );
 }

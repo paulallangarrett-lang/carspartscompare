@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import GuideFooterLinks from '@/components/GuideFooterLinks';
 import JsonLd from '@/components/JsonLd';
 
 export const metadata = {
@@ -147,6 +148,7 @@ export default function WiperBladesGuide() {
             Enter Your Reg Plate →
           </Link>
         </div>
+        <GuideFooterLinks categorySlug="wiper-blades" categoryName="Wiper Blades" additionalCategories={[{slug:"bulbs",name:"Bulbs"},{slug:"headlights",name:"Headlights"},{slug:"wing-mirrors",name:"Wing Mirrors"}]} />
       </article>
     </div>
   );

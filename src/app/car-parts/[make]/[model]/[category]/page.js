@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { DEPARTMENTS, CATEGORY_MAP, DEPARTMENT_FOR_CATEGORY } from '@/lib/categories';
 import { MOCK_PARTS, CATEGORY_PRICES, BRAND_TIERS } from '@/lib/mock-data';
+import { getCompetitors, getGuideForCategory, TOP_UK_MODELS } from '@/lib/internal-links';
 
 const AMAZON_TAG = 'carpartscomp-21';
 
@@ -281,6 +282,69 @@ export default function MakeModelCategoryPage() {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Cross-links: Same part for similar cars */}
+      {(() => {
+        const competitors = getCompetitors(makeSlug, modelSlug, 6);
+        if (competitors.length === 0) return null;
+        return (
+          <div className="mt-8 bg-white border border-gray-200 rounded-xl p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-3">Compare {cat.name} for Similar Cars</h2>
+            <p className="text-sm text-gray-500 mb-4">Shopping around? See {cat.name.toLowerCase()} prices for cars in the same class as the {fullName}.</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {competitors.map(c => (
+                <Link
+                  key={`${c.makeSlug}-${c.modelSlug}`}
+                  href={`/car-parts/${c.makeSlug}/${c.modelSlug}/${categorySlug}`}
+                  className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center hover:border-blue-300 hover:bg-blue-50 transition"
+                >
+                  <span className="text-sm font-medium text-gray-800 block">{c.fullName}</span>
+                  <span className="text-xs text-blue-600">{cat.name} →</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Guide link */}
+      {(() => {
+        const guide = getGuideForCategory(categorySlug);
+        if (!guide) return null;
+        return (
+          <div className="mt-6 bg-gradient-to-r from-gray-50 to-white border border-gray-200 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex-1">
+              <p className="font-bold text-gray-900 text-sm">📖 Read Our {cat.name} Buying Guide</p>
+              <p className="text-xs text-gray-500 mt-1">Not sure which {cat.name.toLowerCase()} to buy? Our guide covers types, brands, when to replace, and how to save money.</p>
+            </div>
+            <Link
+              href={`/guides/${guide.slug}`}
+              className="bg-gray-900 hover:bg-gray-800 text-white font-medium px-4 py-2 rounded-lg transition text-sm whitespace-nowrap text-center"
+            >
+              Read Guide →
+            </Link>
+          </div>
+        );
+      })()}
+
+      {/* Popular models: same part */}
+      <div className="mt-8 bg-gray-50 rounded-xl p-6">
+        <h2 className="text-lg font-bold text-gray-900 mb-3">Popular {cat.name} Searches</h2>
+        <div className="flex flex-wrap gap-2">
+          {TOP_UK_MODELS
+            .filter(m => !(m.makeSlug === makeSlug && m.modelSlug === modelSlug))
+            .slice(0, 12)
+            .map(m => (
+              <Link
+                key={`${m.makeSlug}-${m.modelSlug}`}
+                href={`/car-parts/${m.makeSlug}/${m.modelSlug}/${categorySlug}`}
+                className="bg-white border border-gray-200 text-gray-700 text-sm px-3 py-1.5 rounded-full hover:border-blue-300 hover:text-blue-700 transition"
+              >
+                {m.make} {m.model} {cat.name}
+              </Link>
+            ))}
         </div>
       </div>
 

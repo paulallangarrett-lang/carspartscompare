@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { UK_MAKES, findMake, findModel } from '@/lib/uk-cars';
 import { DEPARTMENTS } from '@/lib/categories';
+import { getCompetitors, TOP_UK_MODELS } from '@/lib/internal-links';
 import RegPlateInput from '@/components/RegPlateInput';
 
 export async function generateStaticParams() {
@@ -90,7 +91,7 @@ export default async function ModelPage({ params }) {
         ))}
       </div>
 
-      {/* Other models */}
+      {/* Other models from same make */}
       <div className="mt-10 bg-gray-50 rounded-xl p-6">
         <h3 className="font-bold text-gray-900 mb-3">Other {make.name} Models</h3>
         <div className="flex flex-wrap gap-2">
@@ -103,6 +104,43 @@ export default async function ModelPage({ params }) {
               {make.name} {m.name}
             </Link>
           ))}
+        </div>
+      </div>
+
+      {/* Competitor models */}
+      {(() => {
+        const competitors = getCompetitors(make.slug, model.slug, 8);
+        if (competitors.length === 0) return null;
+        return (
+          <div className="mt-6 bg-white border border-gray-200 rounded-xl p-6">
+            <h3 className="font-bold text-gray-900 mb-2">Similar Cars to the {fullName}</h3>
+            <p className="text-sm text-gray-500 mb-4">Comparing alternatives? Browse parts for cars in the same class.</p>
+            <div className="flex flex-wrap gap-2">
+              {competitors.map(c => (
+                <Link
+                  key={`${c.makeSlug}-${c.modelSlug}`}
+                  href={`/car-parts/${c.makeSlug}/${c.modelSlug}`}
+                  className="bg-gray-50 border border-gray-200 text-gray-700 text-sm px-3 py-1.5 rounded-full hover:border-blue-300 hover:text-blue-700 transition"
+                >
+                  {c.fullName} Parts
+                </Link>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Buying guides */}
+      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-6">
+        <h3 className="font-bold text-blue-900 mb-3">📖 Buying Guides</h3>
+        <p className="text-sm text-blue-700 mb-4">Not sure what to buy? Our expert guides help you choose the right parts.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <Link href="/guides/brake-pads" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">🛞 Brake Pads Guide</Link>
+          <Link href="/guides/oil-filters" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">🛢️ Oil Filters Guide</Link>
+          <Link href="/guides/car-batteries" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">🔋 Car Batteries Guide</Link>
+          <Link href="/guides/wiper-blades" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">🌧️ Wiper Blades Guide</Link>
+          <Link href="/guides/when-to-replace-parts" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">🔧 Replacement Intervals</Link>
+          <Link href="/guides/saving-money-car-parts" className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:text-blue-700 hover:border-blue-400 transition">💰 Save Money Guide</Link>
         </div>
       </div>
 

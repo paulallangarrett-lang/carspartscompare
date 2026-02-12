@@ -82,6 +82,37 @@ export default function GuidesPage() {
           </Link>
         ))}
       </div>
+
+      {/* Cross-links to popular parts pages */}
+      <div className="mt-12 bg-gray-50 rounded-xl p-6">
+        <h2 className="font-bold text-gray-900 mb-3">Ready to Compare Prices?</h2>
+        <p className="text-sm text-gray-500 mb-4">Jump straight to price comparisons for the UK's most popular cars.</p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { label: 'Ford Fiesta Parts', path: '/car-parts/ford/fiesta' },
+            { label: 'Ford Focus Parts', path: '/car-parts/ford/focus' },
+            { label: 'Vauxhall Corsa Parts', path: '/car-parts/vauxhall/corsa' },
+            { label: 'VW Golf Parts', path: '/car-parts/volkswagen/golf' },
+            { label: 'BMW 3 Series Parts', path: '/car-parts/bmw/3-series' },
+            { label: 'Nissan Qashqai Parts', path: '/car-parts/nissan/qashqai' },
+            { label: 'Toyota Yaris Parts', path: '/car-parts/toyota/yaris' },
+            { label: 'Hyundai Tucson Parts', path: '/car-parts/hyundai/tucson' },
+            { label: 'Kia Sportage Parts', path: '/car-parts/kia/sportage' },
+            { label: 'Audi A3 Parts', path: '/car-parts/audi/a3' },
+          ].map(link => (
+            <Link
+              key={link.path}
+              href={link.path}
+              className="bg-white border border-gray-200 text-gray-700 text-sm px-3 py-1.5 rounded-full hover:border-blue-300 hover:text-blue-700 transition"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+        <div className="mt-4">
+          <Link href="/car-parts" className="text-blue-600 font-medium text-sm hover:underline">Browse all makes and models →</Link>
+        </div>
+      </div>
     </div>
   );
 }
