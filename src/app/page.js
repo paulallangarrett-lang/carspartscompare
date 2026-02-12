@@ -1,5 +1,6 @@
 'use client';
 import RegPlateInput from '@/components/RegPlateInput';
+import { AdBanner } from '@/components/AdUnits';
 
 const POPULAR_MAKES = [
   { name: 'Ford', slug: 'ford' },
@@ -119,6 +120,11 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Ad placement */}
+      <div className="max-w-5xl mx-auto px-4">
+        <AdBanner />
+      </div>
+
       {/* Popular searches — direct links to high-volume category pages */}
       <section className="bg-gray-50 py-16">
         <div className="max-w-5xl mx-auto px-4">
@@ -182,6 +188,67 @@ export default function HomePage() {
                 <span className="text-xs text-blue-600 mt-2 block">Read guide →</span>
               </a>
             ))}
+          </div>
+        </div>
+      </section>
+      {/* SEO content — keyword-rich for broader ranking */}
+      <section className="py-16 bg-white">
+        <div className="max-w-4xl mx-auto px-4">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Why Compare Car Parts Prices?</h2>
+          <div className="prose prose-gray max-w-none text-gray-600 text-sm leading-relaxed space-y-4">
+            <p>
+              Car parts prices vary enormously between retailers. The same set of brake pads can cost £18 from one
+              seller and £45 from another — and both are genuine, brand-name parts. Without comparing, you could
+              easily overpay by 50% or more on routine service items like oil filters, air filters, and wiper blades.
+              CarPartsCompare solves this by showing you prices from Amazon, eBay and specialist UK car parts
+              retailers side by side, so you can spot the best deal in seconds.
+            </p>
+            <p>
+              One of the biggest challenges when buying car parts online is making sure they actually fit your vehicle.
+              A Ford Focus brake pad won't necessarily fit every Focus — it depends on the engine size, year of
+              manufacture, and trim level. That's why we built our registration plate lookup tool. Enter your reg
+              and we use official DVLA data to identify your exact vehicle, then cross-reference it against the
+              TecDoc parts catalogue — the same database used by professional garages — to show you only parts
+              that are guaranteed to fit.
+            </p>
+
+            <h3 className="text-lg font-bold text-gray-900 pt-2">How Much Can You Save?</h3>
+            <p>
+              UK drivers spend an average of £500–£700 per year on car maintenance and repairs. Even on basic service
+              items, the savings from comparing prices add up quickly. A set of front brake pads might cost £22 on
+              eBay versus £38 at a high street retailer. An oil filter could be £5 on Amazon versus £12 elsewhere.
+              Over the course of a year's routine maintenance — oil changes, brake pads, filters, wiper blades — 
+              comparing prices can easily save you £100–£200.
+            </p>
+
+            <h3 className="text-lg font-bold text-gray-900 pt-2">OEM vs Aftermarket: What's the Difference?</h3>
+            <p>
+              When browsing car parts, you'll see terms like OEM, aftermarket, and pattern parts. OEM (Original
+              Equipment Manufacturer) parts are made by the same company that supplied the car manufacturer —
+              brands like Bosch, Brembo, MAHLE, and Denso. These are identical to what came with your car.
+              Aftermarket parts are made by third-party manufacturers and can range from premium alternatives
+              to budget options. For most drivers, mid-range aftermarket brands offer excellent value — you get
+              90% of the quality at 50% of the price. Our comparison tool shows you parts across all tiers
+              so you can make an informed choice.
+            </p>
+
+            <h3 className="text-lg font-bold text-gray-900 pt-2">Trusted UK Retailers</h3>
+            <p>
+              We compare prices from the UK's most popular car parts retailers including Amazon, eBay, Euro Car
+              Parts, GSF Car Parts, CarParts4Less, and Halfords. All retailers we list offer UK delivery, returns
+              policies, and genuine branded parts. Whether you prefer buying from a marketplace like Amazon for
+              Prime delivery, or a specialist like Euro Car Parts for expert fitment advice, you'll find the
+              best price here.
+            </p>
+
+            <h3 className="text-lg font-bold text-gray-900 pt-2">Most Popular Car Parts Searches</h3>
+            <p>
+              The most commonly replaced car parts in the UK are brake pads, oil filters, air filters, wiper
+              blades, spark plugs, and car batteries. These are all routine service items that wear out over
+              time and need periodic replacement. Our <a href="/guides" className="text-blue-600 hover:underline">buying guides</a> cover 
+              each category in detail, explaining what to look for, which brands to trust, and when to replace them.
+              For a full list of the 45 part categories we cover, <a href="/car-parts" className="text-blue-600 hover:underline">browse by make and model</a>.
+            </p>
           </div>
         </div>
       </section>

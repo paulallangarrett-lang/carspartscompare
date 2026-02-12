@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { TOP_UK_MODELS } from '@/lib/internal-links';
+import { AdInContent } from '@/components/AdUnits';
 
 // categorySlug: the primary category this guide relates to (e.g. 'brake-pads')
 // additionalCategories: optional extra related categories to show
@@ -22,6 +23,9 @@ export default function GuideFooterLinks({ categorySlug, categoryName, additiona
 
   return (
     <>
+      {/* In-content ad */}
+      <AdInContent className="mt-8" />
+
       {/* Popular model links for this category */}
       {categorySlug && (
         <div className="mt-8 bg-gray-50 rounded-xl p-6">

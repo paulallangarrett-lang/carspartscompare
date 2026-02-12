@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { DEPARTMENTS, CATEGORY_MAP, DEPARTMENT_FOR_CATEGORY } from '@/lib/categories';
 import { MOCK_PARTS, CATEGORY_PRICES, BRAND_TIERS } from '@/lib/mock-data';
 import { getCompetitors, getGuideForCategory, TOP_UK_MODELS } from '@/lib/internal-links';
+import { AdCategoryTop, AdSidebar } from '@/components/AdUnits';
 
 const AMAZON_TAG = 'carpartscomp-21';
 
@@ -197,6 +198,9 @@ export default function MakeModelCategoryPage() {
           </Link>
         </div>
       </div>
+
+      {/* Ad placement — top of category */}
+      <AdCategoryTop />
 
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Main content */}
@@ -411,6 +415,9 @@ export default function MakeModelCategoryPage() {
               ))}
             </div>
           </div>
+
+          {/* Sidebar ad */}
+          <AdSidebar />
         </div>
       </div>
 

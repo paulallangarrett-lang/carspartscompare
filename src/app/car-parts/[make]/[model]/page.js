@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { UK_MAKES, findMake, findModel } from '@/lib/uk-cars';
 import { DEPARTMENTS } from '@/lib/categories';
 import { getCompetitors, TOP_UK_MODELS } from '@/lib/internal-links';
+import { AdBanner } from '@/components/AdUnits';
 import RegPlateInput from '@/components/RegPlateInput';
 
 export async function generateStaticParams() {
@@ -89,6 +90,11 @@ export default async function ModelPage({ params }) {
             </div>
           </section>
         ))}
+      </div>
+
+      {/* Ad placement */}
+      <div className="mt-8">
+        <AdBanner />
       </div>
 
       {/* Other models from same make */}
