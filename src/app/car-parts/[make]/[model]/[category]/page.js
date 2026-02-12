@@ -42,6 +42,9 @@ function estimatePrice(brand, categorySlug) {
 export default function MakeModelCategoryPage() {
   const { make: makeSlug, model: modelSlug, category: categorySlug } = useParams();
   const [sortBy, setSortBy] = useState('price-low');
+  const [liveParts, setLiveParts] = useState(null);
+  const [liveLoading, setLiveLoading] = useState(true);
+  const [amazonSearchUrl, setAmazonSearchUrl] = useState(null);
 
   const cat = CATEGORY_MAP[categorySlug];
   const dept = DEPARTMENT_FOR_CATEGORY[categorySlug];
@@ -50,6 +53,22 @@ export default function MakeModelCategoryPage() {
   const makeName = (makeSlug || '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   const modelName = (modelSlug || '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   const fullName = `${makeName} ${modelName}`;
+
+  // Fetch live prices on mount
+  useEffect(() => {
+    if (!makeSlug || !modelSlug || !categorySlug) return;
+    setLiveLoading(true);
+    fetch(`/api/prices/search?make=${makeSlug}&model=${modelSlug}&category=${categorySlug}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.parts && data.parts.length > 0 && data.source === 'live') {
+          setLiveParts(data.parts);
+          setAmazonSearchUrl(data.amazonSearchUrl);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLiveLoading(false));
+  }, [makeSlug, modelSlug, categorySlug]);
 
   if (!cat) {
     return (
@@ -62,7 +81,10 @@ export default function MakeModelCategoryPage() {
     );
   }
 
-  // Get mock parts for this category
+  // Determine if we have live data
+  const isLive = liveParts && liveParts.length > 0;
+
+  // Build mock parts as fallback
   const mockParts = (MOCK_PARTS[categorySlug] || []).map(p => {
     const brand = p.supplierName || '';
     const artNo = p.articleNumber || '';
@@ -81,19 +103,31 @@ export default function MakeModelCategoryPage() {
       ebayPrice,
       amazonUrl: `https://www.amazon.co.uk/s?k=${encodeURIComponent(searchTerm)}&tag=${AMAZON_TAG}`,
       ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(searchTerm)}`,
+      priceType: 'estimated',
     };
   });
 
+  // Use live parts if available, otherwise mock
+  const displayParts = isLive ? liveParts : mockParts;
+
   // Sort
-  const sorted = [...mockParts].sort((a, b) => {
-    if (sortBy === 'price-low') return Math.min(a.amazonPrice, a.ebayPrice) - Math.min(b.amazonPrice, b.ebayPrice);
-    if (sortBy === 'price-high') return Math.min(b.amazonPrice, b.ebayPrice) - Math.min(a.amazonPrice, a.ebayPrice);
-    if (sortBy === 'brand') return (a.supplierName || '').localeCompare(b.supplierName || '');
+  const sorted = [...displayParts].sort((a, b) => {
+    if (isLive) {
+      if (sortBy === 'price-low') return (a.ebayPrice || 999) - (b.ebayPrice || 999);
+      if (sortBy === 'price-high') return (b.ebayPrice || 0) - (a.ebayPrice || 0);
+      if (sortBy === 'brand') return (a.brand || a.supplierName || '').localeCompare(b.brand || b.supplierName || '');
+    } else {
+      if (sortBy === 'price-low') return Math.min(a.amazonPrice, a.ebayPrice) - Math.min(b.amazonPrice, b.ebayPrice);
+      if (sortBy === 'price-high') return Math.min(b.amazonPrice, b.ebayPrice) - Math.min(a.amazonPrice, a.ebayPrice);
+      if (sortBy === 'brand') return (a.supplierName || '').localeCompare(b.supplierName || '');
+    }
     return 0;
   });
 
   // Best price for hero
-  const allPrices = mockParts.flatMap(p => [p.amazonPrice, p.ebayPrice]).filter(Boolean);
+  const allPrices = isLive
+    ? liveParts.map(p => p.ebayPrice).filter(Boolean)
+    : mockParts.flatMap(p => [p.amazonPrice, p.ebayPrice]).filter(Boolean);
   const lowestPrice = allPrices.length > 0 ? Math.min(...allPrices) : null;
 
   // Related categories in same department
@@ -134,8 +168,14 @@ export default function MakeModelCategoryPage() {
             )}
           </div>
           <div className="text-right self-start">
-            <span className="text-xs text-slate-400 block">Prices estimated</span>
-            <span className="text-xs text-slate-400">{sorted.length} parts found</span>
+            {isLive ? (
+              <span className="text-xs text-green-400 bg-green-900/30 px-2 py-1 rounded-full block">● Live prices</span>
+            ) : liveLoading ? (
+              <span className="text-xs text-blue-300 block">Loading live prices...</span>
+            ) : (
+              <span className="text-xs text-slate-400 block">Estimated prices</span>
+            )}
+            <span className="text-xs text-slate-400 mt-1 block">{sorted.length} parts found</span>
           </div>
         </div>
       </div>
@@ -178,6 +218,73 @@ export default function MakeModelCategoryPage() {
           {/* Parts list */}
           <div className="space-y-3">
             {sorted.map((part, i) => {
+              if (isLive) {
+                // Live eBay listing card
+                return (
+                  <div
+                    key={part.id || i}
+                    className={`bg-white border rounded-xl p-4 hover:shadow-md transition ${i === 0 ? 'border-green-300 ring-1 ring-green-200' : 'border-gray-200'}`}
+                  >
+                    {i === 0 && (
+                      <div className="text-xs font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full inline-block mb-2">
+                        ✅ Best Price
+                      </div>
+                    )}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      {/* Image */}
+                      {part.image && (
+                        <div className="w-20 h-20 flex-shrink-0 bg-gray-50 rounded-lg overflow-hidden">
+                          <img src={part.image} alt={part.title} className="w-full h-full object-contain" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-bold text-gray-900 text-sm">{part.brand}</span>
+                          {part.brandTier && TIER_LABELS[part.brandTier] && (
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TIER_LABELS[part.brandTier].color}`}>
+                              {TIER_LABELS[part.brandTier].label}
+                            </span>
+                          )}
+                          {part.freeShipping && (
+                            <span className="text-xs text-green-600 font-medium">Free delivery</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-600 line-clamp-2">{part.title}</p>
+                        {part.partNumber && (
+                          <p className="text-xs text-gray-400 mt-0.5">Part No: {part.partNumber}</p>
+                        )}
+                        {part.sellerRating && (
+                          <p className="text-xs text-gray-400 mt-0.5">Seller: {part.sellerRating}% positive</p>
+                        )}
+                      </div>
+                      <div className="flex gap-2 sm:gap-3 flex-shrink-0">
+                        <a
+                          href={part.ebayUrl}
+                          target="_blank"
+                          rel="noopener noreferrer nofollow"
+                          className="flex flex-col items-center bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 hover:bg-blue-100 transition min-w-[100px]"
+                        >
+                          <span className="text-xs text-gray-500">eBay</span>
+                          <span className="font-bold text-gray-900">£{part.ebayPrice.toFixed(2)}</span>
+                          <span className="text-xs text-blue-600">Buy now →</span>
+                        </a>
+                        <a
+                          href={part.amazonUrl}
+                          target="_blank"
+                          rel="noopener noreferrer nofollow"
+                          className="flex flex-col items-center bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 hover:bg-amber-100 transition min-w-[100px]"
+                        >
+                          <span className="text-xs text-gray-500">Amazon</span>
+                          <span className="font-medium text-gray-700 text-sm">Check price</span>
+                          <span className="text-xs text-blue-600">View →</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Mock/estimated data card (fallback)
               const bestPrice = Math.min(part.amazonPrice, part.ebayPrice);
               const isCheapest = bestPrice === lowestPrice;
               const tier = TIER_LABELS[part.brandTier] || TIER_LABELS.mid;
@@ -229,6 +336,19 @@ export default function MakeModelCategoryPage() {
             })}
           </div>
 
+          {/* Amazon search CTA when live */}
+          {isLive && amazonSearchUrl && (
+            <a
+              href={amazonSearchUrl}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="mt-4 block bg-amber-50 border-2 border-amber-200 rounded-xl p-4 text-center hover:bg-amber-100 transition"
+            >
+              <p className="font-bold text-gray-900 text-sm">🔍 Search Amazon for {fullName} {cat.name}</p>
+              <p className="text-xs text-gray-500 mt-1">Compare Amazon prices for this part →</p>
+            </a>
+          )}
+
           {sorted.length === 0 && (
             <div className="bg-gray-50 rounded-xl p-8 text-center">
               <p className="text-gray-500">No {cat.name.toLowerCase()} data available yet for the {fullName}.</p>
@@ -242,8 +362,17 @@ export default function MakeModelCategoryPage() {
           {/* Disclaimer */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
             <p className="text-xs text-amber-800">
-              <strong>⚠️ Estimated prices.</strong> These are typical UK prices for {fullName} {cat.name.toLowerCase()}. 
-              Exact prices and fitment depend on your specific vehicle. <Link href="/" className="text-blue-600 underline">Enter your reg</Link> for accurate results.
+              {isLive ? (
+                <>
+                  <strong>● Live prices</strong> from eBay UK. Prices may change — click through to confirm.
+                  Amazon prices shown as search links. <Link href="/" className="text-blue-600 underline">Enter your reg</Link> for guaranteed fitment.
+                </>
+              ) : (
+                <>
+                  <strong>⚠️ Estimated prices.</strong> These are typical UK prices for {fullName} {cat.name.toLowerCase()}.
+                  Exact prices and fitment depend on your specific vehicle. <Link href="/" className="text-blue-600 underline">Enter your reg</Link> for accurate results.
+                </>
+              )}
             </p>
           </div>
 
@@ -352,10 +481,10 @@ export default function MakeModelCategoryPage() {
       <div className="mt-10 prose prose-gray max-w-none">
         <h2 className="text-xl font-bold text-gray-900">{fullName} {cat.name} — Price Comparison</h2>
         <p className="text-gray-600 text-sm leading-relaxed">
-          Looking for {cat.name.toLowerCase()} for your {fullName}? CarPartsCompare shows you prices from Amazon, eBay and 
-          specialist UK retailers side by side, so you can find the best deal without visiting multiple websites. 
-          We list parts from premium brands through to budget options, all compatible with the {fullName}. 
-          For the most accurate results matched to your exact engine and year, enter your registration plate above — 
+          Looking for {cat.name.toLowerCase()} for your {fullName}? CarPartsCompare shows you prices from Amazon, eBay and
+          specialist UK retailers side by side, so you can find the best deal without visiting multiple websites.
+          We list parts from premium brands through to budget options, all compatible with the {fullName}.
+          For the most accurate results matched to your exact engine and year, enter your registration plate above —
           we use DVLA data and the TecDoc parts catalogue to guarantee fitment.
         </p>
       </div>
