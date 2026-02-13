@@ -109,14 +109,14 @@ function formatPart(p, categoryName, categorySlug, ebayData) {
   const artNo = p.articleNumber || p.articleNo || '';
   const brand = p.supplierName || '';
   const searchTerm = `${brand} ${artNo}`.trim();
-  // Strip spaces/slashes from part number for eBay search URL to match API results
-  const cleanSearchTerm = `${brand} ${artNo.replace(/[\s\/\-]/g, '')}`.trim();
+  // Strip spaces/slashes from part number and include category for better eBay search
+  const cleanPartNo = artNo.replace(/[\s\/\-]/g, '');
+  const ebaySearchTerm = `${brand} ${cleanPartNo} ${categoryName}`.trim();
   const estimated = estimatePrice(brand, categorySlug);
 
   // If we have live eBay data, use it
   if (ebayData) {
-    // Link to eBay search using cleaned part number, sorted cheapest first
-    const ebaySearchUrl = `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(cleanSearchTerm)}&_sacat=0&LH_BIN=1&LH_PrefLoc=1&_sop=15&mkevt=1&mkcid=1&mkrid=710-53481-19255-0&campid=CarPartsComparison`;
+    const ebaySearchUrl = `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(ebaySearchTerm)}&_sacat=0&LH_BIN=1&LH_PrefLoc=1&_sop=15&mkevt=1&mkcid=1&mkrid=710-53481-19255-0&campid=CarPartsComparison`;
     return {
       articleId: p.articleId,
       articleNumber: artNo,
@@ -152,7 +152,7 @@ function formatPart(p, categoryName, categorySlug, ebayData) {
     productName: p.productName || p.articleProductName || categoryName,
     imageUrl: p.imageUrl || p.images?.[0]?.imageURL200 || null,
     amazonUrl: `https://www.amazon.co.uk/s?k=${encodeURIComponent(searchTerm)}&tag=${AMAZON_TAG}`,
-    ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(cleanSearchTerm)}&_sop=15`,
+    ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(ebaySearchTerm)}&_sop=15`,
     amazonPrice: estimated,
     ebayPrice: ebayEstimated,
     priceType: 'estimated',
