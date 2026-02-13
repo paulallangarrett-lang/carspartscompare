@@ -29,7 +29,6 @@ export default function PartsPage() {
         const vRes = await fetch(`/api/lookup?reg=${reg}`);
         const vData = await vRes.json();
         if (vData.error) { setError(vData.error); setLoading(false); return; }
-        // Pick up user-selected model from sessionStorage
         if (!vData.model && typeof window !== 'undefined') {
           const storedModel = sessionStorage.getItem(`vehicle_model_${reg.toUpperCase()}`);
           if (storedModel) vData.model = storedModel;
@@ -210,7 +209,7 @@ export default function PartsPage() {
                   <h3 className="font-bold text-green-800 text-sm">Live Prices</h3>
                 </div>
                 <p className="text-xs text-green-700 leading-relaxed">
-                  eBay prices marked with <span className="font-medium">✓ Live</span> are fetched in real-time. Amazon prices are estimates — click through to confirm the current price.
+                  eBay prices marked <span className="font-medium">✓ Live</span> are fetched in real-time. Amazon prices are estimates — click through to confirm.
                 </p>
               </div>
             ) : (
@@ -245,7 +244,6 @@ export default function PartsPage() {
                 <Link href={`/vehicle/${reg}`} className="text-xs text-blue-600 hover:underline mt-2 inline-block">← Change category</Link>
               </div>
             )}
-            {/* Related categories from same department */}
             {dept && (
               <div className="bg-white border border-gray-200 rounded-xl p-4">
                 <h3 className="font-bold text-gray-700 text-sm mb-2">{dept.icon} More {dept.name}</h3>

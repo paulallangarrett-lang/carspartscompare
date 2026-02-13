@@ -7,6 +7,10 @@ import { searchEbayParts, isEbayConfigured } from '@/lib/ebay-api';
 
 const AMAZON_TAG = process.env.AMAZON_ASSOCIATE_TAG || 'carpartscomp-21';
 
+// Cache eBay results by part number (survives within same serverless instance)
+const ebayCache = new Map();
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
 function getBrandTier(brand) {
   const b = (brand || '').trim();
   for (const [tier, brands] of Object.entries(BRAND_TIERS)) {
@@ -32,25 +36,63 @@ function estimatePrice(brand, categorySlug) {
   return Math.round(price * 100) / 100;
 }
 
-function formatPart(p, categoryName, categorySlug, ebayMatch) {
+// Search eBay for a specific part by brand + part number
+async function getEbayPriceForPart(brand, partNumber, categoryName) {
+  const cacheKey = `${brand}:${partNumber}`.toLowerCase();
+  const cached = ebayCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+
+  try {
+    // Search for the specific part number (stripped of spaces for better matching)
+    const cleanPartNo = partNumber.replace(/[\s\/\-]/g, '');
+    const query = `${brand} ${cleanPartNo} ${categoryName}`;
+    
+    const results = await searchEbayParts(brand, cleanPartNo, categoryName, { limit: 3 });
+    
+    if (results.length > 0) {
+      // Pick the cheapest result
+      const best = results.sort((a, b) => a.price - b.price)[0];
+      const data = {
+        price: best.price,
+        image: best.image,
+        url: best.url,
+        title: best.title,
+        seller: best.seller,
+        freeShipping: best.freeShipping,
+      };
+      ebayCache.set(cacheKey, { data, timestamp: Date.now() });
+      return data;
+    }
+  } catch (err) {
+    // Silently fail — we'll use estimated prices
+  }
+
+  // Cache the miss too (avoid repeated failed lookups)
+  ebayCache.set(cacheKey, { data: null, timestamp: Date.now() });
+  return null;
+}
+
+function formatPart(p, categoryName, categorySlug, ebayData) {
   const artNo = p.articleNumber || p.articleNo || '';
   const brand = p.supplierName || '';
   const searchTerm = `${brand} ${artNo}`.trim();
   const estimated = estimatePrice(brand, categorySlug);
 
-  // If we have a live eBay match, use real data
-  if (ebayMatch) {
+  // If we have live eBay data, use it
+  if (ebayData) {
     return {
       articleId: p.articleId,
       articleNumber: artNo,
       supplierName: brand,
       brandTier: getBrandTier(brand),
       productName: p.productName || p.articleProductName || categoryName,
-      imageUrl: ebayMatch.image || p.imageUrl || p.images?.[0]?.imageURL200 || null,
+      imageUrl: ebayData.image || p.imageUrl || p.images?.[0]?.imageURL200 || null,
       amazonUrl: `https://www.amazon.co.uk/s?k=${encodeURIComponent(searchTerm)}&tag=${AMAZON_TAG}`,
-      ebayUrl: ebayMatch.url,
+      ebayUrl: ebayData.url,
       amazonPrice: estimated,
-      ebayPrice: ebayMatch.price,
+      ebayPrice: ebayData.price,
       priceType: 'live',
     };
   }
@@ -80,29 +122,6 @@ function formatPart(p, categoryName, categorySlug, ebayMatch) {
     ebayPrice: ebayEstimated,
     priceType: 'estimated',
   };
-}
-
-// Try to match eBay listings to TecDoc parts by part number
-function matchEbayToParts(parts, ebayItems) {
-  const matches = new Map();
-
-  for (const part of parts) {
-    const artNo = (part.articleNumber || part.articleNo || '').toUpperCase().replace(/[\s\-]/g, '');
-    if (!artNo || artNo.length < 3) continue;
-
-    for (const item of ebayItems) {
-      const titleNorm = (item.title || '').toUpperCase().replace(/[\s\-]/g, '');
-      if (titleNorm.includes(artNo)) {
-        // Found a match — use cheapest if multiple matches
-        const existing = matches.get(artNo);
-        if (!existing || item.price < existing.price) {
-          matches.set(artNo, item);
-        }
-      }
-    }
-  }
-
-  return matches;
 }
 
 export async function GET(request) {
@@ -159,55 +178,70 @@ export async function GET(request) {
     }
   }
 
-  // Get vehicle info for eBay search if we don't have it yet
-  if (!vehicle && reg) {
-    try {
-      const lookupUrl = new URL('/api/lookup', request.url);
-      lookupUrl.searchParams.set('reg', reg);
-      const vRes = await fetch(lookupUrl);
-      const vData = await vRes.json();
-      if (vData && !vData.error) {
-        vehicle = vData;
-      }
-    } catch (e) { /* ignore */ }
-  }
-
   // Use mock data as fallback
   if (!rawParts) {
     rawParts = MOCK_PARTS[category] || [];
   }
 
-  // Fetch live eBay prices and try to match to parts
-  let ebayMatches = new Map();
-  if (isEbayConfigured() && rawParts.length > 0 && vehicle?.make && vehicle?.model) {
+  // Fetch live eBay prices per part in parallel
+  let ebayResults = new Map();
+  let liveCount = 0;
+
+  if (isEbayConfigured() && rawParts.length > 0) {
     try {
-      const ebayItems = await searchEbayParts(vehicle.make, vehicle.model, cat.name, { limit: 20 });
-      if (ebayItems.length > 0) {
-        ebayMatches = matchEbayToParts(rawParts, ebayItems);
-        console.log(`eBay: ${ebayItems.length} results, ${ebayMatches.size} matched to parts for ${vehicle.make} ${vehicle.model} ${cat.name}`);
+      // Search eBay for each part in parallel (limited to first 12 parts)
+      const partsToSearch = rawParts.slice(0, 12);
+      const searches = partsToSearch.map(p => {
+        const brand = p.supplierName || '';
+        const artNo = p.articleNumber || p.articleNo || '';
+        if (!brand || !artNo) return Promise.resolve({ key: '', data: null });
+        
+        const key = (p.articleId || artNo).toString();
+        return getEbayPriceForPart(brand, artNo, cat.name)
+          .then(data => ({ key, data }));
+      });
+
+      const results = await Promise.all(searches);
+      for (const { key, data } of results) {
+        if (key && data) {
+          ebayResults.set(key, data);
+          liveCount++;
+        }
+      }
+      
+      if (liveCount > 0) {
+        console.log(`eBay: ${liveCount}/${partsToSearch.length} parts matched with live prices for ${cat.name}`);
       }
     } catch (err) {
-      console.error('eBay price fetch failed:', err.message);
+      console.error('eBay batch search failed:', err.message);
     }
   }
 
-  // Format parts with eBay matches where available
+  // Format parts with eBay data where available
   const parts = rawParts.map(p => {
-    const artNo = (p.articleNumber || p.articleNo || '').toUpperCase().replace(/[\s\-]/g, '');
-    const ebayMatch = ebayMatches.get(artNo) || null;
-    return formatPart(p, cat.name, category, ebayMatch);
+    const key = (p.articleId || p.articleNumber || p.articleNo || '').toString();
+    const ebayData = ebayResults.get(key) || null;
+    return formatPart(p, cat.name, category, ebayData);
   });
 
   const response = {
     parts,
     category,
     source: partsSource,
-    priceSource: ebayMatches.size > 0 ? 'live' : 'estimated',
-    liveMatches: ebayMatches.size,
+    priceSource: liveCount > 0 ? 'live' : 'estimated',
+    liveMatches: liveCount,
   };
 
   if (vehicle) {
     response.vehicle = vehicle;
+  }
+
+  // Clean old cache entries (keep last 1000)
+  if (ebayCache.size > 1000) {
+    const entries = [...ebayCache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp);
+    for (let i = 0; i < entries.length - 1000; i++) {
+      ebayCache.delete(entries[i][0]);
+    }
   }
 
   return NextResponse.json(response);
