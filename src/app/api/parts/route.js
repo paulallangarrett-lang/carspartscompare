@@ -82,6 +82,8 @@ function formatPart(p, categoryName, categorySlug, ebayData) {
 
   // If we have live eBay data, use it
   if (ebayData) {
+    // Link to eBay search results (not a single listing) so users see all options
+    const ebaySearchUrl = `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(searchTerm)}&_sacat=0&LH_BIN=1&LH_PrefLoc=1&mkevt=1&mkcid=1&mkrid=710-53481-19255-0&campid=CarPartsComparison`;
     return {
       articleId: p.articleId,
       articleNumber: artNo,
@@ -90,7 +92,7 @@ function formatPart(p, categoryName, categorySlug, ebayData) {
       productName: p.productName || p.articleProductName || categoryName,
       imageUrl: ebayData.image || p.imageUrl || p.images?.[0]?.imageURL200 || null,
       amazonUrl: `https://www.amazon.co.uk/s?k=${encodeURIComponent(searchTerm)}&tag=${AMAZON_TAG}`,
-      ebayUrl: ebayData.url,
+      ebayUrl: ebaySearchUrl,
       amazonPrice: estimated,
       ebayPrice: ebayData.price,
       priceType: 'live',
