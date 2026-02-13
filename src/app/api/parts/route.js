@@ -36,6 +36,37 @@ function estimatePrice(brand, categorySlug) {
   return Math.round(price * 100) / 100;
 }
 
+// Validate that an eBay listing actually matches the brand we searched for
+function isRelevantResult(ebayTitle, brand) {
+  if (!ebayTitle || !brand) return false;
+  const titleLower = ebayTitle.toLowerCase();
+  const brandLower = brand.toLowerCase().trim();
+
+  // Direct brand match
+  if (titleLower.includes(brandLower)) return true;
+
+  // Handle common brand name variations
+  const brandAliases = {
+    'mann-filter': ['mann', 'mann filter'],
+    'mann': ['mann-filter', 'mann filter'],
+    'blue print': ['blueprint', 'blue print'],
+    'blueprint': ['blue print'],
+    'wix filters': ['wix'],
+    'wix': ['wix filters'],
+    'febi bilstein': ['febi'],
+    'febi': ['febi bilstein'],
+    'k&n': ['kn', 'k and n', 'k&n'],
+    'first line': ['firstline'],
+  };
+
+  const aliases = brandAliases[brandLower] || [];
+  for (const alias of aliases) {
+    if (titleLower.includes(alias)) return true;
+  }
+
+  return false;
+}
+
 // Search eBay for a specific part by brand + part number
 async function getEbayPriceForPart(brand, partNumber, categoryName) {
   const cacheKey = `${brand}:${partNumber}`.toLowerCase();
@@ -46,20 +77,25 @@ async function getEbayPriceForPart(brand, partNumber, categoryName) {
 
   try {
     const cleanPartNo = partNumber.replace(/[\s\/\-]/g, '');
-    const results = await searchEbayParts(brand, cleanPartNo, categoryName, { limit: 3 });
-    
+    const results = await searchEbayParts(brand, cleanPartNo, categoryName, { limit: 5 });
+
     if (results.length > 0) {
-      const best = results.sort((a, b) => a.price - b.price)[0];
-      const data = {
-        price: best.price,
-        image: best.image,
-        url: best.url,
-        title: best.title,
-        seller: best.seller,
-        freeShipping: best.freeShipping,
-      };
-      ebayCache.set(cacheKey, { data, timestamp: Date.now() });
-      return data;
+      // Filter to only results that actually contain the brand name
+      const relevant = results.filter(item => isRelevantResult(item.title, brand));
+
+      if (relevant.length > 0) {
+        const best = relevant.sort((a, b) => a.price - b.price)[0];
+        const data = {
+          price: best.price,
+          image: best.image,
+          url: best.url,
+          title: best.title,
+          seller: best.seller,
+          freeShipping: best.freeShipping,
+        };
+        ebayCache.set(cacheKey, { data, timestamp: Date.now() });
+        return data;
+      }
     }
   } catch (err) {
     // Silently fail — we'll use estimated prices
