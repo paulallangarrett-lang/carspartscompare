@@ -18,6 +18,7 @@ export default function PartsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [sortBy, setSortBy] = useState('price-low');
+  const [priceSource, setPriceSource] = useState('estimated');
 
   const cat = CATEGORY_MAP[category];
   const dept = DEPARTMENT_FOR_CATEGORY[category];
@@ -39,6 +40,7 @@ export default function PartsPage() {
         const pData = await pRes.json();
         if (pData.error) { setError(pData.error); setLoading(false); return; }
         setParts(pData.parts || []);
+        setPriceSource(pData.priceSource || 'estimated');
       } catch (err) {
         setError('Failed to load parts');
       }
@@ -55,6 +57,7 @@ export default function PartsPage() {
   });
 
   const cheapestPrice = parts.length > 0 ? Math.min(...parts.map(p => p.amazonPrice || 999)) : null;
+  const hasLivePrices = parts.some(p => p.priceType === 'live');
 
   if (loading) return (
     <div className="max-w-6xl mx-auto px-4 py-20 text-center">
@@ -102,6 +105,12 @@ export default function PartsPage() {
         <p className="text-sm text-blue-800">
           <span className="font-bold">{parts.length}</span> compatible parts found from <span className="font-bold">{new Set(parts.map(p => p.supplierName)).size}</span> brands
           {cheapestPrice && cheapestPrice < 999 && <span> • From <span className="font-bold text-green-700">£{cheapestPrice.toFixed(2)}</span></span>}
+          {hasLivePrices && (
+            <span className="inline-flex items-center gap-1 ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+              Live eBay prices
+            </span>
+          )}
         </p>
         <select
           value={sortBy}
@@ -124,6 +133,7 @@ export default function PartsPage() {
                 const isCheapest = part.amazonPrice === cheapestPrice && sortBy === 'price-low' && i === 0;
                 const tier = TIER_LABELS[part.brandTier] || TIER_LABELS.mid;
                 const cheaperStore = part.amazonPrice <= part.ebayPrice ? 'amazon' : 'ebay';
+                const isLive = part.priceType === 'live';
 
                 return (
                   <div key={part.articleId || i} className={`bg-white rounded-xl border ${isCheapest ? 'border-green-300 ring-1 ring-green-200' : 'border-gray-200'} p-4 md:p-5 hover:shadow-md transition relative`}>
@@ -133,9 +143,9 @@ export default function PartsPage() {
                       </span>
                     )}
                     <div className="flex flex-col md:flex-row md:items-center gap-4">
-                      <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {part.imageUrl ? (
-                          <img src={part.imageUrl} alt="" className="w-14 h-14 object-contain" />
+                          <img src={part.imageUrl} alt={`${part.supplierName} ${part.articleNumber}`} className="w-14 h-14 object-contain" />
                         ) : (
                           <span className="text-2xl">{cat?.icon}</span>
                         )}
@@ -145,6 +155,9 @@ export default function PartsPage() {
                           <span className="font-bold text-gray-800">{part.supplierName}</span>
                           <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded font-mono">{part.articleNumber}</span>
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${tier.color}`}>{tier.label}</span>
+                          {isLive && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-green-50 text-green-600 font-medium">✓ Live</span>
+                          )}
                         </div>
                         <p className="text-sm text-gray-500">{part.productName}</p>
                       </div>
@@ -190,15 +203,27 @@ export default function PartsPage() {
         {/* Sticky sidebar */}
         <div className="hidden lg:block w-72 flex-shrink-0">
           <div className="sticky top-24 space-y-4">
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <div className="flex items-start gap-2 mb-2">
-                <span className="text-amber-500 text-lg mt-0.5">⚠️</span>
-                <h3 className="font-bold text-amber-800 text-sm">Prices May Vary</h3>
+            {hasLivePrices ? (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                <div className="flex items-start gap-2 mb-2">
+                  <span className="text-green-500 text-lg mt-0.5">✅</span>
+                  <h3 className="font-bold text-green-800 text-sm">Live Prices</h3>
+                </div>
+                <p className="text-xs text-green-700 leading-relaxed">
+                  eBay prices marked with <span className="font-medium">✓ Live</span> are fetched in real-time. Amazon prices are estimates — click through to confirm the current price.
+                </p>
               </div>
-              <p className="text-xs text-amber-700 leading-relaxed">
-                Prices shown are estimates based on typical UK retail pricing. Actual prices may differ — always check the retailer for the current price before purchasing.
-              </p>
-            </div>
+            ) : (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <div className="flex items-start gap-2 mb-2">
+                  <span className="text-amber-500 text-lg mt-0.5">⚠️</span>
+                  <h3 className="font-bold text-amber-800 text-sm">Prices May Vary</h3>
+                </div>
+                <p className="text-xs text-amber-700 leading-relaxed">
+                  Prices shown are estimates based on typical UK retail pricing. Actual prices may differ — always check the retailer for the current price before purchasing.
+                </p>
+              </div>
+            )}
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
               <div className="flex items-start gap-2 mb-2">
                 <span className="text-blue-500 text-lg mt-0.5">🔧</span>
@@ -245,7 +270,10 @@ export default function PartsPage() {
       {/* Disclaimer */}
       <div className="mt-8 space-y-2 text-center">
         <p className="text-xs text-gray-400">
-          Prices shown are estimated based on typical UK retail prices and may differ from actual listings. Click through to see the current price.
+          {hasLivePrices
+            ? 'eBay prices are fetched live and may change. Amazon prices are estimates — click through to see the current price.'
+            : 'Prices shown are estimated based on typical UK retail prices and may differ from actual listings. Click through to see the current price.'
+          }
         </p>
         <p className="text-xs text-gray-400">
           As an Amazon Associate and eBay Partner, CarPartsCompare earns from qualifying purchases.
