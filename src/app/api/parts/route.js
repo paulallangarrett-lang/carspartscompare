@@ -45,14 +45,10 @@ async function getEbayPriceForPart(brand, partNumber, categoryName) {
   }
 
   try {
-    // Search for the specific part number (stripped of spaces for better matching)
     const cleanPartNo = partNumber.replace(/[\s\/\-]/g, '');
-    const query = `${brand} ${cleanPartNo} ${categoryName}`;
-    
     const results = await searchEbayParts(brand, cleanPartNo, categoryName, { limit: 3 });
     
     if (results.length > 0) {
-      // Pick the cheapest result
       const best = results.sort((a, b) => a.price - b.price)[0];
       const data = {
         price: best.price,
@@ -69,7 +65,6 @@ async function getEbayPriceForPart(brand, partNumber, categoryName) {
     // Silently fail — we'll use estimated prices
   }
 
-  // Cache the miss too (avoid repeated failed lookups)
   ebayCache.set(cacheKey, { data: null, timestamp: Date.now() });
   return null;
 }
@@ -82,8 +77,8 @@ function formatPart(p, categoryName, categorySlug, ebayData) {
 
   // If we have live eBay data, use it
   if (ebayData) {
-    // Link to eBay search results (not a single listing) so users see all options
-    const ebaySearchUrl = `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(searchTerm)}&_sacat=0&LH_BIN=1&LH_PrefLoc=1&mkevt=1&mkcid=1&mkrid=710-53481-19255-0&campid=CarPartsComparison`;
+    // Link to eBay search results sorted cheapest first (_sop=15), not a single listing
+    const ebaySearchUrl = `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(searchTerm)}&_sacat=0&LH_BIN=1&LH_PrefLoc=1&_sop=15&mkevt=1&mkcid=1&mkrid=710-53481-19255-0&campid=CarPartsComparison`;
     return {
       articleId: p.articleId,
       articleNumber: artNo,
@@ -99,7 +94,7 @@ function formatPart(p, categoryName, categorySlug, ebayData) {
     };
   }
 
-  // Fallback: estimated prices
+  // Fallback: estimated prices — also sorted cheapest first
   let ebayEstimated = null;
   if (estimated) {
     let hash = 0;
@@ -119,7 +114,7 @@ function formatPart(p, categoryName, categorySlug, ebayData) {
     productName: p.productName || p.articleProductName || categoryName,
     imageUrl: p.imageUrl || p.images?.[0]?.imageURL200 || null,
     amazonUrl: `https://www.amazon.co.uk/s?k=${encodeURIComponent(searchTerm)}&tag=${AMAZON_TAG}`,
-    ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(searchTerm)}`,
+    ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(searchTerm)}&_sop=15`,
     amazonPrice: estimated,
     ebayPrice: ebayEstimated,
     priceType: 'estimated',
@@ -180,6 +175,19 @@ export async function GET(request) {
     }
   }
 
+  // Get vehicle info for eBay search if we don't have it yet
+  if (!vehicle && reg) {
+    try {
+      const lookupUrl = new URL('/api/lookup', request.url);
+      lookupUrl.searchParams.set('reg', reg);
+      const vRes = await fetch(lookupUrl);
+      const vData = await vRes.json();
+      if (vData && !vData.error) {
+        vehicle = vData;
+      }
+    } catch (e) { /* ignore */ }
+  }
+
   // Use mock data as fallback
   if (!rawParts) {
     rawParts = MOCK_PARTS[category] || [];
@@ -191,7 +199,6 @@ export async function GET(request) {
 
   if (isEbayConfigured() && rawParts.length > 0) {
     try {
-      // Search eBay for each part in parallel (limited to first 12 parts)
       const partsToSearch = rawParts.slice(0, 12);
       const searches = partsToSearch.map(p => {
         const brand = p.supplierName || '';
