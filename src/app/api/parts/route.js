@@ -109,15 +109,14 @@ function formatPart(p, categoryName, categorySlug, ebayData) {
   const artNo = p.articleNumber || p.articleNo || '';
   const brand = p.supplierName || '';
   const searchTerm = `${brand} ${artNo}`.trim();
-  // Strip spaces/slashes from part number for clean search
+  // Strip spaces/slashes from part number for eBay search URL
   const cleanPartNo = artNo.replace(/[\s\/\-]/g, '');
-  // Use quoted exact match for eBay search URL so results are actually relevant
-  const ebayExactSearch = `"${brand} ${cleanPartNo}"`;
+  const cleanSearchTerm = `${brand} ${cleanPartNo}`.trim();
   const estimated = estimatePrice(brand, categorySlug);
 
   // If we have live eBay data, use it
   if (ebayData) {
-    const ebaySearchUrl = `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(ebayExactSearch)}&_sacat=0&LH_BIN=1&LH_PrefLoc=1&_sop=15&mkevt=1&mkcid=1&mkrid=710-53481-19255-0&campid=CarPartsComparison`;
+    const ebaySearchUrl = `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(cleanSearchTerm)}&_sacat=0&LH_BIN=1&LH_PrefLoc=1&_sop=15&mkevt=1&mkcid=1&mkrid=710-53481-19255-0&campid=CarPartsComparison`;
     return {
       articleId: p.articleId,
       articleNumber: artNo,
@@ -153,7 +152,7 @@ function formatPart(p, categoryName, categorySlug, ebayData) {
     productName: p.productName || p.articleProductName || categoryName,
     imageUrl: p.imageUrl || p.images?.[0]?.imageURL200 || null,
     amazonUrl: `https://www.amazon.co.uk/s?k=${encodeURIComponent(searchTerm)}&tag=${AMAZON_TAG}`,
-    ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(ebayExactSearch)}&_sop=15`,
+    ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(cleanSearchTerm)}&_sop=15`,
     amazonPrice: estimated,
     ebayPrice: ebayEstimated,
     priceType: 'estimated',
@@ -214,7 +213,7 @@ export async function GET(request) {
     }
   }
 
-  // Get vehicle info for eBay search if we don't have it yet
+  // Get vehicle info if we don't have it yet
   if (!vehicle && reg) {
     try {
       const lookupUrl = new URL('/api/lookup', request.url);
