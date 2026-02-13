@@ -179,7 +179,12 @@ export default function PartsPage() {
                           rel="nofollow noopener"
                           className={`inline-flex flex-col items-center bg-[#0064D2] hover:bg-[#0050aa] text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm min-w-[90px] ${cheaperStore === 'ebay' ? 'ring-2 ring-green-400' : ''}`}
                         >
-                          {part.ebayPrice && <span className="text-base font-bold">£{part.ebayPrice.toFixed(2)}</span>}
+                          {part.ebayPrice && (
+                            <span className="text-base font-bold">
+                              {isLive && <span className="text-[10px] font-normal block -mb-0.5">from</span>}
+                              £{part.ebayPrice.toFixed(2)}
+                            </span>
+                          )}
                           <span className="flex items-center gap-1 text-xs">
                             eBay
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
@@ -209,7 +214,7 @@ export default function PartsPage() {
                   <h3 className="font-bold text-green-800 text-sm">Live Prices</h3>
                 </div>
                 <p className="text-xs text-green-700 leading-relaxed">
-                  eBay prices marked <span className="font-medium">✓ Live</span> are fetched in real-time. Amazon prices are estimates — click through to confirm.
+                  eBay prices marked <span className="font-medium">✓ Live</span> show the lowest price found. Click through to see all available listings.
                 </p>
               </div>
             ) : (
@@ -269,7 +274,7 @@ export default function PartsPage() {
       <div className="mt-8 space-y-2 text-center">
         <p className="text-xs text-gray-400">
           {hasLivePrices
-            ? 'eBay prices are fetched live and may change. Amazon prices are estimates — click through to see the current price.'
+            ? 'eBay prices show the lowest found and may vary. Amazon prices are estimates — click through to see the current price.'
             : 'Prices shown are estimated based on typical UK retail prices and may differ from actual listings. Click through to see the current price.'
           }
         </p>
