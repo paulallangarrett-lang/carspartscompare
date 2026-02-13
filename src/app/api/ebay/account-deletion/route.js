@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
 
 // You'll set this same token in the eBay developer dashboard
 const VERIFICATION_TOKEN = process.env.EBAY_DELETION_VERIFICATION_TOKEN || 'CarPartsCompare_eBay_Verification_2025_uk';
-const ENDPOINT_URL = 'https://carpartscompare.uk/api/ebay/account-deletion';
+const ENDPOINT_URL = 'https://www.carpartscompare.uk/api/ebay/account-deletion';
 
 // GET - Handle eBay's challenge verification
 // eBay sends: GET /api/ebay/account-deletion?challenge_code=xxx
