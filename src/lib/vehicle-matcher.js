@@ -57,7 +57,10 @@ function yearInRange(model, year) {
 // v2 models have: modelId, modelName, modelYearFrom (date string), modelYearTo (date string)
 // CRITICAL: Must use year to distinguish generations (e.g. Focus I vs Focus III)
 export function findBestModel(models, dvlaModel, year) {
-  const search = dvlaModel.toUpperCase().trim();
+  const search = (dvlaModel || '').toUpperCase().trim();
+  
+  // CRITICAL: If model is empty, return null — caller must use brute-force path
+  if (!search) return null;
   
   // Try exact match first (with year check)
   let match = models.find(m => m.modelName.toUpperCase() === search && yearInRange(m, year));
@@ -185,6 +188,56 @@ export function findBestVehicle(vehicles, engineCapacity, fuelType, powerKW) {
   return candidates[0];
 }
 
+// Score how well a vehicle matches the DVLA/UKVD data (higher = better)
+function scoreVehicleMatch(vehicle, engineCapacity, fuelType, powerKW) {
+  let score = 0;
+
+  // Fuel type match (+10)
+  if (fuelType && vehicle.fuelType) {
+    const fuelUpper = fuelType.toUpperCase();
+    const fuelMap = {
+      'PETROL': ['petrol', 'gasoline', 'benzin'],
+      'DIESEL': ['diesel'],
+      'ELECTRIC': ['electric'],
+      'HYBRID': ['hybrid'],
+      'HYBRID ELECTRIC': ['hybrid'],
+      'HYBRID ELECTRIC (CLEAN)': ['hybrid'],
+    };
+    const searchTerms = fuelMap[fuelUpper] || [fuelUpper.toLowerCase()];
+    const vFuel = (vehicle.fuelType || '').toLowerCase();
+    const vName = (vehicle.vehicleName || '').toLowerCase();
+    if (searchTerms.some(t => vFuel.includes(t) || vName.includes(t))) {
+      score += 10;
+    } else {
+      score -= 20; // Wrong fuel is a dealbreaker
+    }
+  }
+
+  // Engine capacity match (+10 for exact, +5 for close)
+  if (engineCapacity) {
+    const cc = parseInt(engineCapacity);
+    const vCc = vehicle.capacityTech || 0;
+    if (vCc > 0) {
+      const diff = Math.abs(vCc - cc);
+      if (diff < 50) score += 10;
+      else if (diff < 100) score += 5;
+      else score -= 5;
+    }
+  }
+
+  // Power match (+20 for exact, +10 for close)
+  if (powerKW && vehicle.powerKw) {
+    const targetKw = typeof powerKW === 'number' ? powerKW : parseFloat(powerKW);
+    const diff = Math.abs(vehicle.powerKw - targetKw);
+    if (diff <= 2) score += 20;
+    else if (diff <= 5) score += 15;
+    else if (diff <= 10) score += 10;
+    else score -= 5;
+  }
+
+  return score;
+}
+
 // Full lookup: DVLA/UKVD data → TecDoc vehicle ID
 export async function matchVehicle(dvlaData) {
   const { make, model, yearOfManufacture, engineCapacity, fuelType, powerKW } = dvlaData;
@@ -197,24 +250,82 @@ export async function matchVehicle(dvlaData) {
   const models = await getModels(mfgId);
   if (!models || models.length === 0) return { error: `No models found for ${make}`, step: 'models' };
 
-  // Step 3: Match model using year to get correct generation
-  const bestModel = findBestModel(models, model, yearOfManufacture);
-  if (!bestModel) return { error: `Could not match model: ${make} ${model}`, step: 'model-match' };
-  console.log(`[TecDoc] Model: ${bestModel.modelName} (modelId: ${bestModel.modelId}, years: ${bestModel.modelYearFrom} to ${bestModel.modelYearTo})`);
+  const hasModel = model && model.trim() !== '';
 
-  // Step 4: Get vehicle variants (1 API call, cached)
-  const vehicles = await getVehicles(bestModel.modelId);
-  if (!vehicles || vehicles.length === 0) return { error: `No variants found for ${make} ${model}`, step: 'vehicles' };
+  // ===== PATH A: We have a model name (e.g. "Focus", "Q3") =====
+  if (hasModel) {
+    const bestModel = findBestModel(models, model, yearOfManufacture);
+    if (!bestModel) return { error: `Could not match model: ${make} ${model}`, step: 'model-match' };
+    console.log(`[TecDoc] Model: ${bestModel.modelName} (modelId: ${bestModel.modelId}, years: ${bestModel.modelYearFrom} to ${bestModel.modelYearTo})`);
 
-  // Step 5: Match best vehicle variant using powerKW for precision
-  const bestVehicle = findBestVehicle(vehicles, engineCapacity, fuelType, powerKW);
+    const vehicles = await getVehicles(bestModel.modelId);
+    if (!vehicles || vehicles.length === 0) return { error: `No variants found for ${make} ${model}`, step: 'vehicles' };
 
-  return {
-    manufacturerId: mfgId,
-    modelId: bestModel.modelId,
-    modelName: bestModel.modelName,
-    vehicleId: bestVehicle?.vehicleId || vehicles[0].vehicleId,
-    vehicleName: bestVehicle?.vehicleName || vehicles[0].vehicleName,
-    allVehicles: vehicles,
-  };
+    const bestVehicle = findBestVehicle(vehicles, engineCapacity, fuelType, powerKW);
+
+    return {
+      manufacturerId: mfgId,
+      modelId: bestModel.modelId,
+      modelName: bestModel.modelName,
+      vehicleId: bestVehicle?.vehicleId || vehicles[0].vehicleId,
+      vehicleName: bestVehicle?.vehicleName || vehicles[0].vehicleName,
+      allVehicles: vehicles,
+    };
+  }
+
+  // ===== PATH B: No model name (DVLA-only data) =====
+  // Brute-force: check all year-matching models, score vehicles by fuel+cc+kW
+  console.log(`[TecDoc] No model name for ${make} ${yearOfManufacture} ${engineCapacity}cc ${fuelType} ${powerKW || '?'}kW — using brute-force search`);
+
+  // Filter models by year range
+  const yearCandidates = yearOfManufacture
+    ? models.filter(m => yearInRange(m, yearOfManufacture))
+    : models;
+
+  // Prefer base models (shorter names, e.g. "3 (E90)" over "3 Gran Turismo")
+  // and sort by name length to check common models first
+  const sortedCandidates = [...yearCandidates].sort((a, b) => a.modelName.length - b.modelName.length);
+
+  // Limit to avoid excessive API calls (each getVehicles is 1 call, but cached)
+  const modelsToCheck = sortedCandidates.slice(0, 12);
+  console.log(`[TecDoc] Checking ${modelsToCheck.length} of ${yearCandidates.length} year-matching models`);
+
+  let bestMatch = null;
+  let bestScore = -Infinity;
+
+  for (const candidateModel of modelsToCheck) {
+    try {
+      const vehicles = await getVehicles(candidateModel.modelId);
+      if (!vehicles || vehicles.length === 0) continue;
+
+      for (const v of vehicles) {
+        const score = scoreVehicleMatch(v, engineCapacity, fuelType, powerKW);
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = {
+            manufacturerId: mfgId,
+            modelId: candidateModel.modelId,
+            modelName: candidateModel.modelName,
+            vehicleId: v.vehicleId,
+            vehicleName: v.vehicleName,
+            allVehicles: vehicles,
+          };
+        }
+      }
+    } catch (err) {
+      console.error(`[TecDoc] Error checking model ${candidateModel.modelName}: ${err.message}`);
+    }
+  }
+
+  if (bestMatch && bestScore >= 15) {
+    console.log(`[TecDoc] Brute-force match: ${bestMatch.modelName} → ${bestMatch.vehicleName} (score: ${bestScore})`);
+    return bestMatch;
+  }
+
+  if (bestMatch) {
+    console.log(`[TecDoc] Low-confidence brute-force match: ${bestMatch.modelName} → ${bestMatch.vehicleName} (score: ${bestScore})`);
+    return bestMatch;
+  }
+
+  return { error: `Could not match vehicle: ${make} (no model name available)`, step: 'model-match' };
 }
