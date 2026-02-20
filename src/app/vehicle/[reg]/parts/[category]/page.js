@@ -19,6 +19,8 @@ export default function PartsPage() {
   const [error, setError] = useState('');
   const [sortBy, setSortBy] = useState('price-low');
   const [priceSource, setPriceSource] = useState('estimated');
+  const [selectedBrands, setSelectedBrands] = useState([]);
+  const [brandDropdownOpen, setBrandDropdownOpen] = useState(false);
 
   const cat = CATEGORY_MAP[category];
   const dept = DEPARTMENT_FOR_CATEGORY[category];
@@ -48,15 +50,23 @@ export default function PartsPage() {
     load();
   }, [reg, category]);
 
-  const sortedParts = [...parts].sort((a, b) => {
+  // Get unique brands sorted alphabetically
+  const allBrands = [...new Set(parts.map(p => p.supplierName).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+
+  // Filter by selected brands
+  const filteredParts = selectedBrands.length > 0
+    ? parts.filter(p => selectedBrands.includes(p.supplierName))
+    : parts;
+
+  const sortedParts = [...filteredParts].sort((a, b) => {
     if (sortBy === 'price-low') return (a.amazonPrice || 999) - (b.amazonPrice || 999);
     if (sortBy === 'price-high') return (b.amazonPrice || 0) - (a.amazonPrice || 0);
     if (sortBy === 'brand') return (a.supplierName || '').localeCompare(b.supplierName || '');
     return 0;
   });
 
-  const cheapestPrice = parts.length > 0 ? Math.min(...parts.map(p => p.amazonPrice || 999)) : null;
-  const hasLivePrices = parts.some(p => p.priceType === 'live');
+  const cheapestPrice = filteredParts.length > 0 ? Math.min(...filteredParts.map(p => p.amazonPrice || 999)) : null;
+  const hasLivePrices = filteredParts.some(p => p.priceType === 'live');
 
   if (loading) return (
     <div className="max-w-6xl mx-auto px-4 py-20 text-center">
@@ -102,7 +112,7 @@ export default function PartsPage() {
       {/* Results count + sort */}
       <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <p className="text-sm text-blue-800">
-          <span className="font-bold">{parts.length}</span> compatible parts found from <span className="font-bold">{new Set(parts.map(p => p.supplierName)).size}</span> brands
+          <span className="font-bold">{filteredParts.length}</span>{selectedBrands.length > 0 ? ` of ${parts.length}` : ''} compatible parts found from <span className="font-bold">{new Set(filteredParts.map(p => p.supplierName)).size}</span> brands
           {cheapestPrice && cheapestPrice < 999 && <span> • From <span className="font-bold text-green-700">£{cheapestPrice.toFixed(2)}</span></span>}
           {hasLivePrices && (
             <span className="inline-flex items-center gap-1 ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
@@ -111,15 +121,73 @@ export default function PartsPage() {
             </span>
           )}
         </p>
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-          className="text-sm bg-white border border-blue-200 rounded-md px-2 py-1 text-gray-700"
-        >
-          <option value="price-low">Price: Low to High</option>
-          <option value="price-high">Price: High to Low</option>
-          <option value="brand">Brand A-Z</option>
-        </select>
+        <div className="flex items-center gap-2">
+          {/* Brand filter dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setBrandDropdownOpen(!brandDropdownOpen)}
+              className="text-sm bg-white border border-blue-200 rounded-md px-2 py-1 text-gray-700 flex items-center gap-1 hover:bg-gray-50 transition"
+            >
+              Brands{selectedBrands.length > 0 && <span className="bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{selectedBrands.length}</span>}
+              <svg className={`w-3.5 h-3.5 transition-transform ${brandDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            {brandDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setBrandDropdownOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 w-64 max-h-80 overflow-hidden flex flex-col">
+                  {/* Header */}
+                  <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-700">Filter by brand ({allBrands.length})</span>
+                    {selectedBrands.length > 0 && (
+                      <button onClick={() => setSelectedBrands([])} className="text-xs text-blue-600 hover:underline">Clear all</button>
+                    )}
+                  </div>
+                  {/* Brand list */}
+                  <div className="overflow-y-auto flex-1 p-1">
+                    {allBrands.map(brand => (
+                      <label
+                        key={brand}
+                        className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-blue-50 cursor-pointer text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedBrands.includes(brand)}
+                          onChange={() => {
+                            setSelectedBrands(prev =>
+                              prev.includes(brand)
+                                ? prev.filter(b => b !== brand)
+                                : [...prev, brand]
+                            );
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="truncate text-gray-700">{brand}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {/* Apply */}
+                  <div className="px-3 py-2 border-t border-gray-100 bg-gray-50">
+                    <button
+                      onClick={() => setBrandDropdownOpen(false)}
+                      className="w-full text-xs bg-blue-600 text-white rounded-md py-1.5 hover:bg-blue-700 transition font-medium"
+                    >
+                      Show {filteredParts.length} parts
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="text-sm bg-white border border-blue-200 rounded-md px-2 py-1 text-gray-700"
+          >
+            <option value="price-low">Price: Low to High</option>
+            <option value="price-high">Price: High to Low</option>
+            <option value="brand">Brand A-Z</option>
+          </select>
+        </div>
       </div>
 
       {/* Parts grid + sidebar */}
