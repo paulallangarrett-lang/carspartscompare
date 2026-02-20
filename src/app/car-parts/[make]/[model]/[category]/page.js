@@ -1,7 +1,7 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { DEPARTMENTS, CATEGORY_MAP, DEPARTMENT_FOR_CATEGORY } from '@/lib/categories';
 import { MOCK_PARTS, CATEGORY_PRICES, BRAND_TIERS } from '@/lib/mock-data';
 import { getCompetitors, getGuideForCategory, TOP_UK_MODELS } from '@/lib/internal-links';
@@ -41,11 +41,26 @@ function estimatePrice(brand, categorySlug) {
 }
 
 export default function MakeModelCategoryPage() {
+  return (
+    <Suspense fallback={<div className="max-w-6xl mx-auto px-4 py-20 text-center text-gray-400">Loading parts...</div>}>
+      <MakeModelCategoryContent />
+    </Suspense>
+  );
+}
+
+function MakeModelCategoryContent() {
   const { make: makeSlug, model: modelSlug, category: categorySlug } = useParams();
+  const searchParams = useSearchParams();
+  const reg = searchParams.get('reg');
+
   const [sortBy, setSortBy] = useState('price-low');
   const [liveParts, setLiveParts] = useState(null);
   const [liveLoading, setLiveLoading] = useState(true);
   const [amazonSearchUrl, setAmazonSearchUrl] = useState(null);
+  const [tecDocParts, setTecDocParts] = useState(null);
+  const [tecDocVehicle, setTecDocVehicle] = useState(null);
+  const [tecDocLoading, setTecDocLoading] = useState(false);
+  const [tecDocSource, setTecDocSource] = useState(null);
 
   const cat = CATEGORY_MAP[categorySlug];
   const dept = DEPARTMENT_FOR_CATEGORY[categorySlug];
@@ -55,8 +70,26 @@ export default function MakeModelCategoryPage() {
   const modelName = (modelSlug || '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   const fullName = `${makeName} ${modelName}`;
 
-  // Fetch live prices on mount
+  // Fetch TecDoc parts when reg is present
   useEffect(() => {
+    if (!reg || !categorySlug) return;
+    setTecDocLoading(true);
+    fetch(`/api/parts?reg=${encodeURIComponent(reg)}&category=${categorySlug}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.parts && data.parts.length > 0) {
+          setTecDocParts(data.parts);
+          setTecDocVehicle(data.vehicle || null);
+          setTecDocSource(data.source || 'live');
+        }
+      })
+      .catch(() => {})
+      .finally(() => setTecDocLoading(false));
+  }, [reg, categorySlug]);
+
+  // Fetch live eBay prices when NO reg (generic browsing)
+  useEffect(() => {
+    if (reg) { setLiveLoading(false); return; }
     if (!makeSlug || !modelSlug || !categorySlug) return;
     setLiveLoading(true);
     fetch(`/api/prices/search?make=${makeSlug}&model=${modelSlug}&category=${categorySlug}`)
@@ -69,7 +102,7 @@ export default function MakeModelCategoryPage() {
       })
       .catch(() => {})
       .finally(() => setLiveLoading(false));
-  }, [makeSlug, modelSlug, categorySlug]);
+  }, [reg, makeSlug, modelSlug, categorySlug]);
 
   if (!cat) {
     return (
@@ -82,8 +115,9 @@ export default function MakeModelCategoryPage() {
     );
   }
 
-  // Determine if we have live data
-  const isLive = liveParts && liveParts.length > 0;
+  // Determine data source priority: TecDoc > Live eBay > Mock
+  const hasTecDoc = tecDocParts && tecDocParts.length > 0;
+  const isLive = !hasTecDoc && liveParts && liveParts.length > 0;
 
   // Build mock parts as fallback
   const mockParts = (MOCK_PARTS[categorySlug] || []).map(p => {
@@ -108,12 +142,18 @@ export default function MakeModelCategoryPage() {
     };
   });
 
-  // Use live parts if available, otherwise mock
-  const displayParts = isLive ? liveParts : mockParts;
+  // Choose display parts
+  const displayParts = hasTecDoc ? tecDocParts : isLive ? liveParts : mockParts;
 
   // Sort
   const sorted = [...displayParts].sort((a, b) => {
-    if (isLive) {
+    if (hasTecDoc) {
+      const aPrice = Math.min(a.amazonPrice || 999, a.ebayPrice || 999);
+      const bPrice = Math.min(b.amazonPrice || 999, b.ebayPrice || 999);
+      if (sortBy === 'price-low') return aPrice - bPrice;
+      if (sortBy === 'price-high') return bPrice - aPrice;
+      if (sortBy === 'brand') return (a.supplierName || '').localeCompare(b.supplierName || '');
+    } else if (isLive) {
       if (sortBy === 'price-low') return (a.ebayPrice || 999) - (b.ebayPrice || 999);
       if (sortBy === 'price-high') return (b.ebayPrice || 0) - (a.ebayPrice || 0);
       if (sortBy === 'brand') return (a.brand || a.supplierName || '').localeCompare(b.brand || b.supplierName || '');
@@ -126,7 +166,9 @@ export default function MakeModelCategoryPage() {
   });
 
   // Best price for hero
-  const allPrices = isLive
+  const allPrices = hasTecDoc
+    ? tecDocParts.flatMap(p => [p.amazonPrice, p.ebayPrice]).filter(Boolean)
+    : isLive
     ? liveParts.map(p => p.ebayPrice).filter(Boolean)
     : mockParts.flatMap(p => [p.amazonPrice, p.ebayPrice]).filter(Boolean);
   const lowestPrice = allPrices.length > 0 ? Math.min(...allPrices) : null;
@@ -137,6 +179,11 @@ export default function MakeModelCategoryPage() {
   // Popular categories for this model
   const popularSlugs = ['brake-pads', 'air-filters', 'oil-filters', 'wiper-blades', 'spark-plugs', 'batteries', 'brake-discs'];
   const otherPopular = DEPARTMENTS.flatMap(d => d.categories).filter(c => popularSlugs.includes(c.slug) && c.slug !== categorySlug).slice(0, 6);
+
+  // Vehicle display name from TecDoc
+  const vehicleDisplay = tecDocVehicle
+    ? `${makeName} ${tecDocVehicle.modelName || modelName} ${tecDocVehicle.vehicleName || ''}`.trim()
+    : fullName;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -158,9 +205,13 @@ export default function MakeModelCategoryPage() {
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           <span className="text-5xl">{cat.icon}</span>
           <div className="flex-1">
-            <h1 className="text-2xl md:text-3xl font-bold">{fullName} {cat.name}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold">{vehicleDisplay} {cat.name}</h1>
             <p className="text-slate-300 text-sm mt-1">
-              Compare {cat.name.toLowerCase()} prices for the {fullName} from top UK retailers
+              {hasTecDoc && reg ? (
+                <>Exact-fit {cat.name.toLowerCase()} for <span className="text-white font-medium">{reg.toUpperCase()}</span> — matched via TecDoc catalogue</>
+              ) : (
+                <>Compare {cat.name.toLowerCase()} prices for the {fullName} from top UK retailers</>
+              )}
             </p>
             {lowestPrice && (
               <p className="text-green-400 font-bold text-lg mt-2">
@@ -169,9 +220,11 @@ export default function MakeModelCategoryPage() {
             )}
           </div>
           <div className="text-right self-start">
-            {isLive ? (
+            {hasTecDoc ? (
+              <span className="text-xs text-green-400 bg-green-900/30 px-2 py-1 rounded-full block">● TecDoc Matched</span>
+            ) : isLive ? (
               <span className="text-xs text-green-400 bg-green-900/30 px-2 py-1 rounded-full block">● Live prices</span>
-            ) : liveLoading ? (
+            ) : tecDocLoading || liveLoading ? (
               <span className="text-xs text-blue-300 block">Loading live prices...</span>
             ) : (
               <span className="text-xs text-slate-400 block">Estimated prices</span>
@@ -181,23 +234,45 @@ export default function MakeModelCategoryPage() {
         </div>
       </div>
 
-      {/* Reg plate CTA */}
-      <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-5 mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex-1">
-            <p className="font-bold text-blue-900 text-sm">🔍 Get exact-fit parts for your {fullName}</p>
-            <p className="text-xs text-blue-700 mt-1">
-              Different {fullName} variants use different {cat.name.toLowerCase()}. Enter your reg plate for guaranteed compatible parts matched to your engine and year.
-            </p>
+      {/* Vehicle identification banner (when TecDoc matched) */}
+      {hasTecDoc && tecDocVehicle && (
+        <div className="bg-green-50 border-2 border-green-200 rounded-xl p-5 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex-1">
+              <p className="font-bold text-green-900 text-sm">✅ Vehicle identified: {vehicleDisplay}</p>
+              <p className="text-xs text-green-700 mt-1">
+                {tecDocParts.length} compatible {cat.name.toLowerCase()} found for your exact vehicle variant.
+                {tecDocParts.filter(p => p.priceType === 'live').length > 0 && (
+                  <> {tecDocParts.filter(p => p.priceType === 'live').length} with live prices.</>
+                )}
+              </p>
+            </div>
+            <span className="bg-green-100 text-green-800 font-mono font-bold px-4 py-2 rounded-lg text-sm">
+              {reg.toUpperCase()}
+            </span>
           </div>
-          <Link
-            href="/"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-lg transition text-sm whitespace-nowrap text-center"
-          >
-            Enter Reg Plate →
-          </Link>
         </div>
-      </div>
+      )}
+
+      {/* Reg plate CTA (only show when NOT using reg) */}
+      {!reg && (
+        <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-5 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex-1">
+              <p className="font-bold text-blue-900 text-sm">🔍 Get exact-fit parts for your {fullName}</p>
+              <p className="text-xs text-blue-700 mt-1">
+                Different {fullName} variants use different {cat.name.toLowerCase()}. Enter your reg plate for guaranteed compatible parts matched to your engine and year.
+              </p>
+            </div>
+            <Link
+              href="/"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-lg transition text-sm whitespace-nowrap text-center"
+            >
+              Enter Reg Plate →
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Ad placement — top of category */}
       <AdCategoryTop />
@@ -207,7 +282,7 @@ export default function MakeModelCategoryPage() {
         <div className="flex-1">
           {/* Sort bar */}
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-gray-500">{sorted.length} {cat.name.toLowerCase()} found for {fullName}</p>
+            <p className="text-sm text-gray-500">{sorted.length} {cat.name.toLowerCase()} found for {hasTecDoc ? vehicleDisplay : fullName}</p>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -222,8 +297,78 @@ export default function MakeModelCategoryPage() {
           {/* Parts list */}
           <div className="space-y-3">
             {sorted.map((part, i) => {
+              // TecDoc matched parts card
+              if (hasTecDoc) {
+                const tier = TIER_LABELS[part.brandTier] || TIER_LABELS.mid;
+                const bestPrice = Math.min(part.amazonPrice || 999, part.ebayPrice || 999);
+                const isCheapest = bestPrice === lowestPrice;
+                const isLivePrice = part.priceType === 'live';
+
+                return (
+                  <div
+                    key={part.articleId || i}
+                    className={`bg-white border rounded-xl p-4 hover:shadow-md transition ${isCheapest ? 'border-green-300 ring-1 ring-green-200' : 'border-gray-200'}`}
+                  >
+                    {isCheapest && (
+                      <div className="text-xs font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full inline-block mb-2">
+                        ✅ Best Price
+                      </div>
+                    )}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      {/* Image */}
+                      {part.imageUrl && (
+                        <div className="w-20 h-20 flex-shrink-0 bg-gray-50 rounded-lg overflow-hidden">
+                          <img src={part.imageUrl} alt={`${part.supplierName} ${part.articleNumber}`} className="w-full h-full object-contain" loading="lazy" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="font-bold text-gray-900">{part.supplierName}</span>
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-mono">{part.articleNumber}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${tier.color}`}>{tier.label}</span>
+                          {isLivePrice && (
+                            <span className="text-xs text-green-600 font-medium">✓ Live</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500">{part.productName || cat.name}</p>
+                      </div>
+                      <div className="flex gap-2 sm:gap-3 flex-shrink-0">
+                        <a
+                          href={part.amazonUrl}
+                          target="_blank"
+                          rel="noopener noreferrer nofollow"
+                          className="flex flex-col items-center bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 hover:bg-amber-100 transition min-w-[100px]"
+                        >
+                          <span className="text-xs text-gray-500">Amazon</span>
+                          {part.amazonPrice ? (
+                            <span className="font-bold text-gray-900">£{part.amazonPrice.toFixed(2)}</span>
+                          ) : (
+                            <span className="font-medium text-gray-700 text-sm">Check price</span>
+                          )}
+                          <span className="text-xs text-blue-600">View →</span>
+                        </a>
+                        <a
+                          href={part.ebayUrl}
+                          target="_blank"
+                          rel="noopener noreferrer nofollow"
+                          className="flex flex-col items-center bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 hover:bg-blue-100 transition min-w-[100px]"
+                        >
+                          <span className="text-xs text-gray-500">{isLivePrice ? 'eBay' : 'from'}</span>
+                          {part.ebayPrice ? (
+                            <span className="font-bold text-gray-900">£{part.ebayPrice.toFixed(2)}</span>
+                          ) : (
+                            <span className="font-medium text-gray-700 text-sm">Check price</span>
+                          )}
+                          <span className="text-xs text-blue-600">{isLivePrice ? 'Buy now →' : 'eBay →'}</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Live eBay listing card (no reg, generic search)
               if (isLive) {
-                // Live eBay listing card
                 return (
                   <div
                     key={part.id || i}
@@ -355,7 +500,7 @@ export default function MakeModelCategoryPage() {
 
           {sorted.length === 0 && (
             <div className="bg-gray-50 rounded-xl p-8 text-center">
-              <p className="text-gray-500">No {cat.name.toLowerCase()} data available yet for the {fullName}.</p>
+              <p className="text-gray-500">No {cat.name.toLowerCase()} data available yet for the {hasTecDoc ? vehicleDisplay : fullName}.</p>
               <Link href="/" className="text-blue-600 hover:underline text-sm mt-2 inline-block">Try entering your reg plate →</Link>
             </div>
           )}
@@ -366,7 +511,12 @@ export default function MakeModelCategoryPage() {
           {/* Disclaimer */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
             <p className="text-xs text-amber-800">
-              {isLive ? (
+              {hasTecDoc ? (
+                <>
+                  <strong>✅ TecDoc matched parts</strong> for reg <strong>{reg.toUpperCase()}</strong>.
+                  Prices from eBay UK and Amazon. Click through to confirm exact fitment and pricing before purchasing.
+                </>
+              ) : isLive ? (
                 <>
                   <strong>● Live prices</strong> from eBay UK. Prices may change — click through to confirm.
                   Amazon prices shown as search links. <Link href="/" className="text-blue-600 underline">Enter your reg</Link> for guaranteed fitment.
@@ -388,7 +538,7 @@ export default function MakeModelCategoryPage() {
                 {relatedCats.map(c => (
                   <Link
                     key={c.slug}
-                    href={`/car-parts/${makeSlug}/${modelSlug}/${c.slug}`}
+                    href={`/car-parts/${makeSlug}/${modelSlug}/${c.slug}${reg ? `?reg=${reg}` : ''}`}
                     className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition"
                   >
                     <span>{c.icon}</span>
@@ -406,7 +556,7 @@ export default function MakeModelCategoryPage() {
               {otherPopular.map(c => (
                 <Link
                   key={c.slug}
-                  href={`/car-parts/${makeSlug}/${modelSlug}/${c.slug}`}
+                  href={`/car-parts/${makeSlug}/${modelSlug}/${c.slug}${reg ? `?reg=${reg}` : ''}`}
                   className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition"
                 >
                   <span>{c.icon}</span>
