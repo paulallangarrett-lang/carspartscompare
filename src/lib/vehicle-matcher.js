@@ -81,23 +81,53 @@ export function findBestModel(models, dvlaModel, year) {
   return candidates[0];
 }
 
-// Find best vehicle variant matching engine size and fuel type
-export function findBestVehicle(vehicles, engineCapacity, fuelType) {
+/**
+ * Extract kW value from a TecDoc vehicle name.
+ * TecDoc names typically include power like:
+ *   "2.0 TDCi (136 kW / 185 PS)"
+ *   "1.6 TDCI 85KW"
+ *   "2.0 TDCi DPF (100 KW)"
+ */
+function extractKwFromName(vehicleName) {
+  if (!vehicleName) return null;
+  // Match patterns like "136 kW", "85KW", "100 KW"
+  const match = vehicleName.match(/(\d+)\s*kw/i);
+  return match ? parseInt(match[1]) : null;
+}
+
+/**
+ * Extract engine cc from a TecDoc vehicle name.
+ * e.g. "2.0 TDCi" → ~2000cc
+ */
+function extractCcFromName(vehicleName) {
+  if (!vehicleName) return null;
+  const match = vehicleName.match(/(\d+\.\d+)/);
+  if (match) {
+    return Math.round(parseFloat(match[1]) * 1000);
+  }
+  return null;
+}
+
+// Find best vehicle variant using enhanced UKVD data
+// Priority: powerKW (exact) > engineCapacity + fuel > fuel only > first match
+export function findBestVehicle(vehicles, engineCapacity, fuelType, powerKW) {
   if (!vehicles || vehicles.length === 0) return null;
   if (vehicles.length === 1) return vehicles[0];
 
-  // Try to match by engine capacity and fuel type
+  // Normalise fuel terms for matching
   const fuelMap = {
-    'PETROL': ['petrol', 'benzin', 'gasoline'],
-    'DIESEL': ['diesel'],
-    'ELECTRIC': ['electric'],
+    'PETROL': ['petrol', 'benzin', 'gasoline', 'tsi', 'gti', 'tfsi', 'gdi', 'mpi', 'fsi'],
+    'DIESEL': ['diesel', 'tdi', 'tdci', 'hdi', 'cdti', 'dci', 'd4d', 'crdi', 'jtd', 'bluehdi'],
+    'ELECTRIC': ['electric', 'ev', 'bev'],
+    'HYBRID': ['hybrid', 'mhev', 'phev', 'e-hybrid'],
     'HYBRID ELECTRIC': ['hybrid', 'mhev', 'phev'],
+    'HYBRID ELECTRIC (CLEAN)': ['hybrid', 'mhev', 'phev'],
   };
   const fuelTerms = fuelMap[fuelType?.toUpperCase()] || [];
   
   let candidates = vehicles;
 
-  // Filter by fuel type if possible
+  // Step 1: Filter by fuel type
   if (fuelTerms.length > 0) {
     const fuelFiltered = candidates.filter(v => {
       const name = v.vehicleName?.toLowerCase() || '';
@@ -106,29 +136,65 @@ export function findBestVehicle(vehicles, engineCapacity, fuelType) {
     if (fuelFiltered.length > 0) candidates = fuelFiltered;
   }
 
-  // Filter by engine capacity if provided (within 50cc tolerance)
+  // Step 2: Filter by engine capacity (within 50cc tolerance)
   if (engineCapacity) {
     const cc = parseInt(engineCapacity);
-    const ccFiltered = candidates.filter(v => {
-      const name = v.vehicleName || '';
-      // Extract cc from name like "1.0 EcoBoost" → 999cc, "2.0 TDCi" → 1997cc
-      const litreMatch = name.match(/(\d+\.\d+)/);
-      if (litreMatch) {
-        const litres = parseFloat(litreMatch[1]);
-        const approxCc = Math.round(litres * 1000);
-        return Math.abs(approxCc - cc) < 100;
-      }
-      return false;
-    });
-    if (ccFiltered.length > 0) candidates = ccFiltered;
+    if (cc > 0) {
+      const ccFiltered = candidates.filter(v => {
+        const nameCc = extractCcFromName(v.vehicleName);
+        if (nameCc) {
+          return Math.abs(nameCc - cc) < 100;
+        }
+        return false;
+      });
+      if (ccFiltered.length > 0) candidates = ccFiltered;
+    }
   }
 
+  // Step 3: Match by powerKW — this is the game changer from UKVD
+  // Narrows from e.g. "all 2.0 TDCi Focus variants" to the exact power output
+  if (powerKW) {
+    const kw = typeof powerKW === 'number' ? powerKW : parseFloat(powerKW);
+    if (kw > 0) {
+      // Try exact match first (within 2kW tolerance for rounding)
+      const exactKwMatch = candidates.filter(v => {
+        const vKw = extractKwFromName(v.vehicleName);
+        return vKw !== null && Math.abs(vKw - kw) <= 2;
+      });
+
+      if (exactKwMatch.length > 0) {
+        console.log(`[TecDoc] powerKW match: ${kw}kW → ${exactKwMatch[0].vehicleName} (${exactKwMatch.length} matches)`);
+        return exactKwMatch[0];
+      }
+
+      // Try closest kW if no exact match
+      const withKw = candidates
+        .map(v => ({ ...v, _extractedKw: extractKwFromName(v.vehicleName) }))
+        .filter(v => v._extractedKw !== null)
+        .sort((a, b) => Math.abs(a._extractedKw - kw) - Math.abs(b._extractedKw - kw));
+
+      if (withKw.length > 0) {
+        const closest = withKw[0];
+        const diff = Math.abs(closest._extractedKw - kw);
+        // Only use closest if within 10kW (reasonable tolerance)
+        if (diff <= 10) {
+          console.log(`[TecDoc] closest kW match: wanted ${kw}kW, found ${closest._extractedKw}kW → ${closest.vehicleName}`);
+          return closest;
+        }
+      }
+    }
+  }
+
+  // Step 4: No kW match possible, return first candidate
+  if (candidates.length > 0) {
+    console.log(`[TecDoc] fallback match (no kW): ${candidates[0].vehicleName} (from ${candidates.length} candidates)`);
+  }
   return candidates[0];
 }
 
-// Full lookup: DVLA data → TecDoc vehicle ID
+// Full lookup: DVLA/UKVD data → TecDoc vehicle ID
 export async function matchVehicle(dvlaData) {
-  const { make, model, yearOfManufacture, engineCapacity, fuelType } = dvlaData;
+  const { make, model, yearOfManufacture, engineCapacity, fuelType, powerKW } = dvlaData;
   
   // Step 1: Find manufacturer
   const mfgId = findManufacturerId(make);
@@ -146,8 +212,8 @@ export async function matchVehicle(dvlaData) {
   const vehicles = await getVehicles(bestModel.modelId);
   if (!vehicles || vehicles.length === 0) return { error: `No variants found for ${make} ${model}`, step: 'vehicles' };
 
-  // Step 5: Match best vehicle variant
-  const bestVehicle = findBestVehicle(vehicles, engineCapacity, fuelType);
+  // Step 5: Match best vehicle variant using powerKW for precision
+  const bestVehicle = findBestVehicle(vehicles, engineCapacity, fuelType, powerKW);
 
   return {
     manufacturerId: mfgId,
