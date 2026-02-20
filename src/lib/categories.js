@@ -9,7 +9,7 @@ export const DEPARTMENTS = [
     description: 'Routine maintenance parts to keep your car running smoothly',
     categories: [
       { slug: 'air-filters',    name: 'Air Filters',    icon: '🌬️', tecDocId: 100260, confirmed: true },
-      { slug: 'oil-filters',    name: 'Oil Filters',    icon: '🛢️', tecDocId: 100005, confirmed: false },
+      { slug: 'oil-filters',    name: 'Oil Filters',    icon: '🛢️', tecDocId: 100259, confirmed: true },
       { slug: 'fuel-filters',   name: 'Fuel Filters',   icon: '⛽',  tecDocId: 100261, confirmed: true },
       { slug: 'cabin-filters',  name: 'Cabin Filters',  icon: '🍃', tecDocId: 100541, confirmed: false },
       { slug: 'spark-plugs',    name: 'Spark Plugs',    icon: '⚡',  tecDocId: 100008, confirmed: false },
