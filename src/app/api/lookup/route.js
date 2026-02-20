@@ -1,58 +1,70 @@
+// app/api/lookup/route.js
+// Vehicle registration lookup - tries UKVD first, falls back to DVLA VES
 import { NextResponse } from 'next/server';
-
-// Mock DVLA lookup for development (replace with real API call)
-// Real DVLA VES API needs an API key from https://developer-portal.driver-vehicle-licensing.api.gov.uk/
-const MOCK_VEHICLES = {
-  'AB12CDE': { make: 'FORD', model: 'FOCUS', yearOfManufacture: 2019, fuelType: 'PETROL', engineCapacity: 999, colour: 'BLUE' },
-  'BD51SMR': { make: 'BMW', model: '3 SERIES', yearOfManufacture: 2020, fuelType: 'DIESEL', engineCapacity: 1995, colour: 'BLACK' },
-  'FG18XYZ': { make: 'VOLKSWAGEN', model: 'GOLF', yearOfManufacture: 2018, fuelType: 'PETROL', engineCapacity: 1498, colour: 'WHITE' },
-};
+import { lookupVehicleUKVD, isUKVDConfigured } from '@/lib/ukvd-api';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const reg = searchParams.get('reg')?.replace(/\s+/g, '').toUpperCase();
+  const reg = searchParams.get('reg');
 
   if (!reg) {
-    return NextResponse.json({ error: 'Registration plate required' }, { status: 400 });
+    return NextResponse.json({ error: 'Registration number required' }, { status: 400 });
   }
 
-  // Try real DVLA API first
-  if (process.env.DVLA_API_KEY) {
-    try {
-      const res = await fetch('https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles', {
+  const cleanReg = reg.toUpperCase().replace(/\s+/g, '');
+  const startTime = Date.now();
+
+  // Try UKVD first (enhanced data)
+  if (isUKVDConfigured()) {
+    const ukvdResult = await lookupVehicleUKVD(cleanReg);
+    if (!ukvdResult.error) {
+      console.log(`UKVD lookup success for ${cleanReg} in ${Date.now() - startTime}ms`);
+      return NextResponse.json(ukvdResult);
+    }
+    console.warn(`UKVD lookup failed for ${cleanReg}: ${ukvdResult.error}, trying DVLA VES fallback`);
+  }
+
+  // Fallback to DVLA VES API
+  try {
+    const vesResponse = await fetch(
+      `https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles`,
+      {
         method: 'POST',
         headers: {
+          'x-api-key': process.env.DVLA_API_KEY || '',
           'Content-Type': 'application/json',
-          'x-api-key': process.env.DVLA_API_KEY,
         },
-        body: JSON.stringify({ registrationNumber: reg }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return NextResponse.json({
-          reg,
-          make: data.make,
-          model: data.model || '',
-          modelFromDvla: !!data.model,
-          yearOfManufacture: data.yearOfManufacture,
-          fuelType: data.fuelType,
-          engineCapacity: data.engineCapacity,
-          colour: data.colour,
-        });
+        body: JSON.stringify({ registrationNumber: cleanReg }),
       }
-      if (res.status === 404) {
-        return NextResponse.json({ error: 'Vehicle not found. Please check your registration plate.' }, { status: 404 });
-      }
-    } catch (err) {
-      console.error('DVLA API error:', err);
+    );
+
+    if (!vesResponse.ok) {
+      const elapsed = Date.now() - startTime;
+      return NextResponse.json(
+        { error: `Vehicle not found (${vesResponse.status})`, elapsed: `${elapsed}ms` },
+        { status: vesResponse.status === 404 ? 404 : 502 }
+      );
     }
-  }
 
-  // Fall back to mock data in development
-  const vehicle = MOCK_VEHICLES[reg];
-  if (!vehicle) {
-    return NextResponse.json({ error: 'Vehicle not found. Please check your registration plate.' }, { status: 404 });
-  }
+    const vesData = await vesResponse.json();
+    const elapsed = Date.now() - startTime;
 
-  return NextResponse.json({ reg, ...vehicle });
+    return NextResponse.json({
+      make: vesData.make || '',
+      model: vesData.model || '',
+      yearOfManufacture: vesData.yearOfManufacture || '',
+      engineCapacity: vesData.engineCapacity || '',
+      fuelType: vesData.fuelType || '',
+      colour: vesData.colour || '',
+      registrationNumber: cleanReg,
+      source: 'dvla-ves',
+      elapsed: `${elapsed}ms`,
+    });
+  } catch (err) {
+    console.error('DVLA VES fallback error:', err.message);
+    return NextResponse.json(
+      { error: 'Both UKVD and DVLA VES lookups failed', details: err.message },
+      { status: 502 }
+    );
+  }
 }
