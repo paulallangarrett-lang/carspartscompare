@@ -1,10 +1,21 @@
+// In-memory cache with /tmp file fallback for Vercel
+// Vercel serverless functions can't write to /var/task (read-only)
+// but CAN write to /tmp (ephemeral, cleared between cold starts)
+
 import fs from 'fs';
 import path from 'path';
 
-const CACHE_DIR = path.join(process.cwd(), 'data', 'cache');
+const CACHE_DIR = '/tmp/cpc-cache';
+const memoryCache = new Map();
+const MAX_MEMORY = 500;
 
-function ensureDir(dir) {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+function ensureDir() {
+  try {
+    if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function keyToFile(key) {
@@ -13,22 +24,52 @@ function keyToFile(key) {
 }
 
 export function cacheGet(key) {
-  const file = keyToFile(key);
-  if (!fs.existsSync(file)) return null;
-  try {
-    const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
-    if (raw._expires && Date.now() > raw._expires) {
-      fs.unlinkSync(file);
-      return null;
+  // Check memory first
+  const mem = memoryCache.get(key);
+  if (mem) {
+    if (mem._expires && Date.now() > mem._expires) {
+      memoryCache.delete(key);
+    } else {
+      return mem.value;
     }
-    return raw.value;
-  } catch { return null; }
+  }
+
+  // Try /tmp file
+  try {
+    const file = keyToFile(key);
+    if (fs.existsSync(file)) {
+      const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+      if (raw._expires && Date.now() > raw._expires) {
+        fs.unlinkSync(file);
+        return null;
+      }
+      // Promote to memory cache
+      memoryCache.set(key, raw);
+      return raw.value;
+    }
+  } catch { /* ignore file errors */ }
+
+  return null;
 }
 
 export function cacheSet(key, value, ttlMs = 30 * 24 * 60 * 60 * 1000) {
-  ensureDir(CACHE_DIR);
-  const file = keyToFile(key);
-  fs.writeFileSync(file, JSON.stringify({ value, _expires: Date.now() + ttlMs }));
+  const entry = { value, _expires: Date.now() + ttlMs };
+
+  // Always set in memory
+  memoryCache.set(key, entry);
+
+  // Evict oldest if too large
+  if (memoryCache.size > MAX_MEMORY) {
+    const firstKey = memoryCache.keys().next().value;
+    memoryCache.delete(firstKey);
+  }
+
+  // Try to persist to /tmp
+  try {
+    if (ensureDir()) {
+      fs.writeFileSync(keyToFile(key), JSON.stringify(entry));
+    }
+  } catch { /* ignore file errors */ }
 }
 
 // Cache-through helper: check cache first, call fn if miss
