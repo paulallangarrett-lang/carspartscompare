@@ -42,45 +42,53 @@ export function findManufacturerId(dvlaMake) {
   return MAKE_MAP[upper] || null;
 }
 
+// Check if a year falls within a model's production range
+function yearInRange(model, year) {
+  if (!year) return true;
+  const y = parseInt(year);
+  const fromStr = model.modelYearFrom || '';
+  const toStr = model.modelYearTo || '';
+  const from = fromStr ? parseInt(fromStr) : 0;
+  const to = toStr ? parseInt(toStr) : 9999;
+  return y >= from && y <= to;
+}
+
 // Find best matching model from TecDoc models list
 // v2 models have: modelId, modelName, modelYearFrom (date string), modelYearTo (date string)
+// CRITICAL: Must use year to distinguish generations (e.g. Focus I vs Focus III)
 export function findBestModel(models, dvlaModel, year) {
   const search = dvlaModel.toUpperCase().trim();
   
-  // Try exact match first
-  let match = models.find(m => m.modelName.toUpperCase() === search);
+  // Try exact match first (with year check)
+  let match = models.find(m => m.modelName.toUpperCase() === search && yearInRange(m, year));
   if (match) return match;
 
-  // Try starts-with match
-  match = models.find(m => m.modelName.toUpperCase().startsWith(search));
+  // Try exact match without year check
+  match = models.find(m => m.modelName.toUpperCase() === search);
   if (match) return match;
 
-  // Try contains match
-  match = models.find(m => m.modelName.toUpperCase().includes(search));
-  if (match) return match;
-
-  // Try matching first word (e.g. "FOCUS" from "FOCUS TITANIUM")
+  // Get all models that contain the search term (e.g. "FOCUS" matches "FOCUS I", "FOCUS III", etc.)
   const firstWord = search.split(/\s+/)[0];
-  const candidates = models.filter(m => m.modelName.toUpperCase().includes(firstWord));
-  
+  const candidates = models.filter(m => {
+    const name = m.modelName.toUpperCase();
+    return name === search || name.startsWith(search + ' ') || name.startsWith(firstWord + ' ') || name.includes(firstWord);
+  });
+
   if (candidates.length === 0) return null;
   if (candidates.length === 1) return candidates[0];
 
-  // Multiple matches - find the one whose year range covers this vehicle
+  // Multiple matches — ALWAYS prefer the one whose year range covers this vehicle
   if (year) {
-    const yearMatch = candidates.find(m => {
-      // v2 uses date strings like "2010-07-01", extract year
-      const fromStr = m.modelYearFrom || m.yearOfConstructionFrom || '';
-      const toStr = m.modelYearTo || m.yearOfConstructionTo || '';
-      const from = parseInt(fromStr);
-      const to = toStr ? parseInt(toStr) : 9999;
-      const y = parseInt(year);
-      return y >= from && y <= (to || 9999);
-    });
-    if (yearMatch) return yearMatch;
+    const yearMatches = candidates.filter(m => yearInRange(m, year));
+    if (yearMatches.length > 0) {
+      // If multiple year matches, prefer the base model (shortest name, e.g. "FOCUS III" over "FOCUS III Turnier")
+      yearMatches.sort((a, b) => a.modelName.length - b.modelName.length);
+      console.log(`[TecDoc] Model matched by year ${year}: ${yearMatches[0].modelName} (modelId: ${yearMatches[0].modelId})`);
+      return yearMatches[0];
+    }
   }
 
-  // Return first candidate as fallback
+  // No year match — return first candidate as fallback
   return candidates[0];
 }
 
@@ -189,9 +197,10 @@ export async function matchVehicle(dvlaData) {
   const models = await getModels(mfgId);
   if (!models || models.length === 0) return { error: `No models found for ${make}`, step: 'models' };
 
-  // Step 3: Match model
+  // Step 3: Match model using year to get correct generation
   const bestModel = findBestModel(models, model, yearOfManufacture);
   if (!bestModel) return { error: `Could not match model: ${make} ${model}`, step: 'model-match' };
+  console.log(`[TecDoc] Model: ${bestModel.modelName} (modelId: ${bestModel.modelId}, years: ${bestModel.modelYearFrom} to ${bestModel.modelYearTo})`);
 
   // Step 4: Get vehicle variants (1 API call, cached)
   const vehicles = await getVehicles(bestModel.modelId);
