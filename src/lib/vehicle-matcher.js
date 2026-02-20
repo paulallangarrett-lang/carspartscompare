@@ -2,7 +2,6 @@ import { getManufacturers, getModels, getVehicles } from './rapidapi.js';
 import { cached } from './cache.js';
 
 // Known DVLA make name → TecDoc manufacturer ID mappings
-// Built from our API test: 698 manufacturers returned
 const MAKE_MAP = {
   'FORD': 36,
   'BMW': 16,
@@ -44,6 +43,7 @@ export function findManufacturerId(dvlaMake) {
 }
 
 // Find best matching model from TecDoc models list
+// v2 models have: modelId, modelName, modelYearFrom (date string), modelYearTo (date string)
 export function findBestModel(models, dvlaModel, year) {
   const search = dvlaModel.toUpperCase().trim();
   
@@ -69,10 +69,13 @@ export function findBestModel(models, dvlaModel, year) {
   // Multiple matches - find the one whose year range covers this vehicle
   if (year) {
     const yearMatch = candidates.find(m => {
-      const from = parseInt(m.yearOfConstructionFrom);
-      const to = m.yearOfConstructionTo ? parseInt(m.yearOfConstructionTo) : 9999;
+      // v2 uses date strings like "2010-07-01", extract year
+      const fromStr = m.modelYearFrom || m.yearOfConstructionFrom || '';
+      const toStr = m.modelYearTo || m.yearOfConstructionTo || '';
+      const from = parseInt(fromStr);
+      const to = toStr ? parseInt(toStr) : 9999;
       const y = parseInt(year);
-      return y >= from && y <= to;
+      return y >= from && y <= (to || 9999);
     });
     if (yearMatch) return yearMatch;
   }
@@ -81,57 +84,40 @@ export function findBestModel(models, dvlaModel, year) {
   return candidates[0];
 }
 
-/**
- * Extract kW value from a TecDoc vehicle name.
- * TecDoc names typically include power like:
- *   "2.0 TDCi (136 kW / 185 PS)"
- *   "1.6 TDCI 85KW"
- *   "2.0 TDCi DPF (100 KW)"
- */
-function extractKwFromName(vehicleName) {
-  if (!vehicleName) return null;
-  // Match patterns like "136 kW", "85KW", "100 KW"
-  const match = vehicleName.match(/(\d+)\s*kw/i);
-  return match ? parseInt(match[1]) : null;
-}
-
-/**
- * Extract engine cc from a TecDoc vehicle name.
- * e.g. "2.0 TDCi" → ~2000cc
- */
-function extractCcFromName(vehicleName) {
-  if (!vehicleName) return null;
-  const match = vehicleName.match(/(\d+\.\d+)/);
-  if (match) {
-    return Math.round(parseFloat(match[1]) * 1000);
-  }
-  return null;
-}
-
-// Find best vehicle variant using enhanced UKVD data
-// Priority: powerKW (exact) > engineCapacity + fuel > fuel only > first match
+// Find best vehicle variant using UKVD data for precision matching
+// v2 vehicles from rapidapi.js are normalised with: vehicleId, vehicleName, powerKw, fuelType, capacityTech, etc.
 export function findBestVehicle(vehicles, engineCapacity, fuelType, powerKW) {
   if (!vehicles || vehicles.length === 0) return null;
-  if (vehicles.length === 1) return vehicles[0];
-
-  // Normalise fuel terms for matching
-  const fuelMap = {
-    'PETROL': ['petrol', 'benzin', 'gasoline', 'tsi', 'gti', 'tfsi', 'gdi', 'mpi', 'fsi'],
-    'DIESEL': ['diesel', 'tdi', 'tdci', 'hdi', 'cdti', 'dci', 'd4d', 'crdi', 'jtd', 'bluehdi'],
-    'ELECTRIC': ['electric', 'ev', 'bev'],
-    'HYBRID': ['hybrid', 'mhev', 'phev', 'e-hybrid'],
-    'HYBRID ELECTRIC': ['hybrid', 'mhev', 'phev'],
-    'HYBRID ELECTRIC (CLEAN)': ['hybrid', 'mhev', 'phev'],
-  };
-  const fuelTerms = fuelMap[fuelType?.toUpperCase()] || [];
   
-  let candidates = vehicles;
+  // Deduplicate by vehicleId (v2 API can return duplicates)
+  const seen = new Set();
+  const unique = vehicles.filter(v => {
+    if (seen.has(v.vehicleId)) return false;
+    seen.add(v.vehicleId);
+    return true;
+  });
+  
+  if (unique.length === 1) return unique[0];
 
-  // Step 1: Filter by fuel type
-  if (fuelTerms.length > 0) {
+  let candidates = unique;
+
+  // Step 1: Filter by fuel type using API's fuelType field directly
+  if (fuelType) {
+    const fuelUpper = fuelType.toUpperCase();
+    const fuelMap = {
+      'PETROL': ['petrol', 'gasoline', 'benzin'],
+      'DIESEL': ['diesel'],
+      'ELECTRIC': ['electric'],
+      'HYBRID': ['hybrid'],
+      'HYBRID ELECTRIC': ['hybrid'],
+      'HYBRID ELECTRIC (CLEAN)': ['hybrid'],
+    };
+    const searchTerms = fuelMap[fuelUpper] || [fuelUpper.toLowerCase()];
+    
     const fuelFiltered = candidates.filter(v => {
-      const name = v.vehicleName?.toLowerCase() || '';
-      return fuelTerms.some(t => name.includes(t));
+      const vFuel = (v.fuelType || '').toLowerCase();
+      const vName = (v.vehicleName || '').toLowerCase();
+      return searchTerms.some(t => vFuel.includes(t) || vName.includes(t));
     });
     if (fuelFiltered.length > 0) candidates = fuelFiltered;
   }
@@ -141,9 +127,15 @@ export function findBestVehicle(vehicles, engineCapacity, fuelType, powerKW) {
     const cc = parseInt(engineCapacity);
     if (cc > 0) {
       const ccFiltered = candidates.filter(v => {
-        const nameCc = extractCcFromName(v.vehicleName);
-        if (nameCc) {
-          return Math.abs(nameCc - cc) < 100;
+        // Use capacityTech (exact cc from API) if available
+        if (v.capacityTech) {
+          return Math.abs(v.capacityTech - cc) < 100;
+        }
+        // Fallback: extract from vehicle name
+        const litreMatch = (v.vehicleName || '').match(/(\d+\.\d+)/);
+        if (litreMatch) {
+          const approxCc = Math.round(parseFloat(litreMatch[1]) * 1000);
+          return Math.abs(approxCc - cc) < 100;
         }
         return false;
       });
@@ -152,42 +144,35 @@ export function findBestVehicle(vehicles, engineCapacity, fuelType, powerKW) {
   }
 
   // Step 3: Match by powerKW — this is the game changer from UKVD
-  // Narrows from e.g. "all 2.0 TDCi Focus variants" to the exact power output
+  // Uses the API's powerKw field directly (no regex extraction needed)
   if (powerKW) {
-    const kw = typeof powerKW === 'number' ? powerKW : parseFloat(powerKW);
-    if (kw > 0) {
-      // Try exact match first (within 2kW tolerance for rounding)
-      const exactKwMatch = candidates.filter(v => {
-        const vKw = extractKwFromName(v.vehicleName);
-        return vKw !== null && Math.abs(vKw - kw) <= 2;
+    const targetKw = typeof powerKW === 'number' ? powerKW : parseFloat(powerKW);
+    if (targetKw > 0) {
+      // Try exact match (within 2kW tolerance for rounding)
+      const exactMatch = candidates.filter(v => {
+        return v.powerKw !== null && Math.abs(v.powerKw - targetKw) <= 2;
       });
 
-      if (exactKwMatch.length > 0) {
-        console.log(`[TecDoc] powerKW match: ${kw}kW → ${exactKwMatch[0].vehicleName} (${exactKwMatch.length} matches)`);
-        return exactKwMatch[0];
+      if (exactMatch.length > 0) {
+        console.log(`[TecDoc] powerKW exact match: ${targetKw}kW → ${exactMatch[0].vehicleName} (vehicleId: ${exactMatch[0].vehicleId})`);
+        return exactMatch[0];
       }
 
-      // Try closest kW if no exact match
+      // Try closest kW within 10kW tolerance
       const withKw = candidates
-        .map(v => ({ ...v, _extractedKw: extractKwFromName(v.vehicleName) }))
-        .filter(v => v._extractedKw !== null)
-        .sort((a, b) => Math.abs(a._extractedKw - kw) - Math.abs(b._extractedKw - kw));
+        .filter(v => v.powerKw !== null)
+        .sort((a, b) => Math.abs(a.powerKw - targetKw) - Math.abs(b.powerKw - targetKw));
 
-      if (withKw.length > 0) {
-        const closest = withKw[0];
-        const diff = Math.abs(closest._extractedKw - kw);
-        // Only use closest if within 10kW (reasonable tolerance)
-        if (diff <= 10) {
-          console.log(`[TecDoc] closest kW match: wanted ${kw}kW, found ${closest._extractedKw}kW → ${closest.vehicleName}`);
-          return closest;
-        }
+      if (withKw.length > 0 && Math.abs(withKw[0].powerKw - targetKw) <= 10) {
+        console.log(`[TecDoc] closest kW match: wanted ${targetKw}kW, found ${withKw[0].powerKw}kW → ${withKw[0].vehicleName} (vehicleId: ${withKw[0].vehicleId})`);
+        return withKw[0];
       }
     }
   }
 
-  // Step 4: No kW match possible, return first candidate
+  // Step 4: No kW match, return first candidate
   if (candidates.length > 0) {
-    console.log(`[TecDoc] fallback match (no kW): ${candidates[0].vehicleName} (from ${candidates.length} candidates)`);
+    console.log(`[TecDoc] fallback match (no kW): ${candidates[0].vehicleName} (vehicleId: ${candidates[0].vehicleId}, from ${candidates.length} candidates)`);
   }
   return candidates[0];
 }
