@@ -3,6 +3,19 @@
 import { NextResponse } from 'next/server';
 import { lookupVehicleUKVD, isUKVDConfigured } from '@/lib/ukvd-api';
 
+// Raw UKVD lookup for debugging — bypasses cache and parsing
+async function rawUKVDLookup(reg) {
+  const apiKey = process.env.UKVD_API_KEY;
+  if (!apiKey) return { error: 'UKVD_API_KEY not set' };
+  const url = `https://uk.api.vehicledataglobal.com/r2/lookup?packageName=VehicleDetailsWithImage&vrm=${reg}`;
+  const res = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) return { error: `UKVD ${res.status}` };
+  return res.json();
+}
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const reg = searchParams.get('reg');
@@ -13,6 +26,17 @@ export async function GET(request) {
 
   const cleanReg = reg.toUpperCase().replace(/\s+/g, '');
   const startTime = Date.now();
+
+  // Debug mode: return raw UKVD response to see all available fields
+  const raw = searchParams.get('raw');
+  if (raw === 'true' && isUKVDConfigured()) {
+    try {
+      const rawData = await rawUKVDLookup(cleanReg);
+      return NextResponse.json({ _debug: true, reg: cleanReg, rawUKVD: rawData });
+    } catch (err) {
+      return NextResponse.json({ _debug: true, error: err.message });
+    }
+  }
 
   // Try UKVD first (enhanced data)
   if (isUKVDConfigured()) {
