@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export const metadata = {
   title: 'Car Parts Buying Guides — Expert Advice | CarPartsCompare UK',
-  description: 'Expert buying guides to help you choose the right car parts. Learn about brake pads, oil filters, batteries, wiper blades and more. Save money on your next car repair.',
+  description: 'Expert buying guides to help you choose the right car parts. Brakes, clutches, timing belts, filters, spark plugs, suspension and more. Save money on your next car repair.',
 };
 
 const GUIDES = [
@@ -47,6 +47,55 @@ const GUIDES = [
     description: 'Smart strategies for comparing prices, understanding brand tiers, and knowing when OEM quality matters vs when budget parts are fine.',
     icon: '💰',
     readTime: '6 min read',
+  },
+  {
+    slug: 'brake-discs',
+    title: 'Brake Disc Buying Guide',
+    description: 'Solid vs vented vs drilled — when to replace your brake discs, how to check wear, and which brands last longest for UK drivers.',
+    icon: '⚙️',
+    readTime: '6 min read',
+  },
+  {
+    slug: 'clutch-kits',
+    title: 'Clutch Kit Buying Guide',
+    description: 'Signs your clutch is failing, what a clutch kit includes, the dual mass flywheel question, and how to choose the right parts.',
+    icon: '🔩',
+    readTime: '7 min read',
+  },
+  {
+    slug: 'timing-belts',
+    title: 'Timing Belt Replacement Guide',
+    description: 'When to replace your timing belt, what happens if it snaps, replacement intervals for popular UK cars, and which brands to trust.',
+    icon: '⏱️',
+    readTime: '7 min read',
+  },
+  {
+    slug: 'shock-absorbers',
+    title: 'Shock Absorber Buying Guide',
+    description: 'How to tell if your shocks are worn, the difference between gas and oil dampers, and brand recommendations for UK roads.',
+    icon: '🏎️',
+    readTime: '6 min read',
+  },
+  {
+    slug: 'spark-plugs',
+    title: 'Spark Plug Buying Guide',
+    description: 'Copper vs platinum vs iridium — which type suits your engine, when to replace them, and why upgrading pays for itself.',
+    icon: '⚡',
+    readTime: '6 min read',
+  },
+  {
+    slug: 'wheel-bearings',
+    title: 'Wheel Bearing Buying Guide',
+    description: 'How to diagnose a worn wheel bearing, the difference between hub assemblies and press-in bearings, and which brands last longest.',
+    icon: '🛞',
+    readTime: '6 min read',
+  },
+  {
+    slug: 'car-filters',
+    title: 'Car Filters Guide — Air, Cabin, Oil & Fuel',
+    description: 'Complete guide to all four car filters: what each one does, when to change them, standard vs performance options, and brand recommendations.',
+    icon: '🌬️',
+    readTime: '8 min read',
   },
 ];
 
