@@ -94,11 +94,12 @@ export default function RootLayout({ children }) {
                   <a href="/about" className="block hover:text-white transition">About Us</a>
                   <a href="/privacy" className="block hover:text-white transition">Privacy Policy</a>
                   <a href="/terms" className="block hover:text-white transition">Terms of Use</a>
+                  <a href="/affiliate-disclosure" className="block hover:text-white transition">Affiliate Disclosure</a>
                 </div>
               </div>
             </div>
             <div className="border-t border-gray-800 mt-8 pt-6 text-xs text-gray-500">
-              <p>&copy; {new Date().getFullYear()} CarPartsCompare.uk — As an Amazon Associate and eBay Partner, we earn from qualifying purchases.</p>
+              <p>&copy; {new Date().getFullYear()} CarPartsCompare.uk — As an <a href="/affiliate-disclosure" className="underline hover:text-gray-300">Amazon Associate and eBay Partner</a>, we earn from qualifying purchases.</p>
             </div>
           </div>
         </footer>
