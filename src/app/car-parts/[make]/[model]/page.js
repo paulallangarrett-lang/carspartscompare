@@ -5,6 +5,7 @@ import { DEPARTMENTS } from '@/lib/categories';
 import { getCompetitors, TOP_UK_MODELS } from '@/lib/internal-links';
 import { AdBanner } from '@/components/AdUnits';
 import RegPlateInput from '@/components/RegPlateInput';
+import { ModelInsights } from '@/components/ModelInsights';
 
 export async function generateStaticParams() {
   const params = [];
@@ -150,17 +151,8 @@ export default async function ModelPage({ params }) {
         </div>
       </div>
 
-      {/* SEO content */}
-      <div className="mt-10 prose prose-gray max-w-none">
-        <h2 className="text-xl font-bold text-gray-900">About {fullName} Parts</h2>
-        <p className="text-gray-600 text-sm leading-relaxed">
-          The {fullName} ({model.years}) is one of the UK's most popular vehicles. CarPartsCompare helps you find the right replacement parts 
-          at the best prices. We compare prices across Amazon, eBay and specialist UK retailers, covering everything from routine service 
-          parts like oil filters and air filters through to brakes, suspension, electrical components and more. 
-          All parts are checked for compatibility with your specific {fullName} variant — just enter your registration plate above 
-          to get started.
-        </p>
-      </div>
+      {/* Model-specific insights (replaces generic SEO text) */}
+      <ModelInsights makeSlug={make.slug} modelSlug={model.slug} />
     </div>
   );
 }

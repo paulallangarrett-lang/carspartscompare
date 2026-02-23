@@ -6,6 +6,7 @@ import { DEPARTMENTS, CATEGORY_MAP, DEPARTMENT_FOR_CATEGORY } from '@/lib/catego
 import { MOCK_PARTS, CATEGORY_PRICES, BRAND_TIERS } from '@/lib/mock-data';
 import { getCompetitors, getGuideForCategory, TOP_UK_MODELS } from '@/lib/internal-links';
 import { AdCategoryTop, AdSidebar } from '@/components/AdUnits';
+import { ModelInsights } from '@/components/ModelInsights';
 
 const AMAZON_TAG = 'carpartscomp-21';
 
@@ -634,17 +635,8 @@ function MakeModelCategoryContent() {
         </div>
       </div>
 
-      {/* SEO content */}
-      <div className="mt-10 prose prose-gray max-w-none">
-        <h2 className="text-xl font-bold text-gray-900">{fullName} {cat.name} — Price Comparison</h2>
-        <p className="text-gray-600 text-sm leading-relaxed">
-          Looking for {cat.name.toLowerCase()} for your {fullName}? CarPartsCompare shows you prices from Amazon, eBay and
-          specialist UK retailers side by side, so you can find the best deal without visiting multiple websites.
-          We list parts from premium brands through to budget options, all compatible with the {fullName}.
-          For the most accurate results matched to your exact engine and year, enter your registration plate above —
-          we use DVLA data and the TecDoc parts catalogue to guarantee fitment.
-        </p>
-      </div>
+      {/* Expert content & model insights */}
+      <ModelInsights makeSlug={makeSlug} modelSlug={modelSlug} categorySlug={categorySlug} />
 
       {/* Affiliate disclosure */}
       <p className="mt-8 text-center text-xs text-gray-400">
