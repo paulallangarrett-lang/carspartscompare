@@ -9,6 +9,14 @@ import { AdCategoryTop, AdSidebar } from '@/components/AdUnits';
 import { ModelInsights } from '@/components/ModelInsights';
 
 const AMAZON_TAG = 'carpartscomp-21';
+const AWIN_PUBLISHER_ID = '2771194';
+const EUROCARPARTS_MERCHANT_ID = '3997';
+
+function getEuroCarPartsUrl(make, model, categoryName) {
+  const searchTerm = `${make} ${model} ${categoryName}`.trim();
+  const destUrl = `https://www.eurocarparts.com/search?q=${encodeURIComponent(searchTerm)}`;
+  return `https://www.awin1.com/cread.php?awinmid=${EUROCARPARTS_MERCHANT_ID}&awinaffid=${AWIN_PUBLISHER_ID}&ued=${encodeURIComponent(destUrl)}`;
+}
 
 const TIER_LABELS = {
   premium: { label: 'Performance', color: 'bg-purple-100 text-purple-700' },
@@ -139,6 +147,7 @@ function MakeModelCategoryContent() {
       ebayPrice,
       amazonUrl: `https://www.amazon.co.uk/s?k=${encodeURIComponent(searchTerm)}&tag=${AMAZON_TAG}`,
       ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(searchTerm)}`,
+      euroCarPartsUrl: getEuroCarPartsUrl(makeName, modelName, cat.name),
       priceType: 'estimated',
     };
   });
@@ -362,6 +371,16 @@ function MakeModelCategoryContent() {
                           )}
                           <span className="text-xs text-blue-600">{isLivePrice ? 'Buy now →' : 'eBay →'}</span>
                         </a>
+                        <a
+                          href={part.euroCarPartsUrl || getEuroCarPartsUrl(makeName, modelName, cat.name)}
+                          target="_blank"
+                          rel="noopener noreferrer nofollow"
+                          className="flex flex-col items-center bg-red-50 border border-red-200 rounded-lg px-4 py-2 hover:bg-red-100 transition min-w-[100px]"
+                        >
+                          <span className="text-xs text-gray-500">Euro Car Parts</span>
+                          <span className="font-medium text-gray-700 text-sm">Check price</span>
+                          <span className="text-xs text-red-600">View →</span>
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -428,6 +447,16 @@ function MakeModelCategoryContent() {
                           <span className="font-medium text-gray-700 text-sm">Check price</span>
                           <span className="text-xs text-blue-600">View →</span>
                         </a>
+                        <a
+                          href={getEuroCarPartsUrl(makeName, modelName, cat.name)}
+                          target="_blank"
+                          rel="noopener noreferrer nofollow"
+                          className="flex flex-col items-center bg-red-50 border border-red-200 rounded-lg px-4 py-2 hover:bg-red-100 transition min-w-[100px]"
+                        >
+                          <span className="text-xs text-gray-500">Euro Car Parts</span>
+                          <span className="font-medium text-gray-700 text-sm">Check price</span>
+                          <span className="text-xs text-red-600">View →</span>
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -479,6 +508,16 @@ function MakeModelCategoryContent() {
                         <span className="font-bold text-gray-900">£{part.ebayPrice.toFixed(2)}</span>
                         <span className="text-xs text-blue-600">View →</span>
                       </a>
+                      <a
+                        href={part.euroCarPartsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer nofollow"
+                        className="flex flex-col items-center bg-red-50 border border-red-200 rounded-lg px-4 py-2 hover:bg-red-100 transition min-w-[100px]"
+                      >
+                        <span className="text-xs text-gray-500">Euro Car Parts</span>
+                        <span className="font-medium text-gray-700 text-sm">Check price</span>
+                        <span className="text-xs text-red-600">View →</span>
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -488,15 +527,26 @@ function MakeModelCategoryContent() {
 
           {/* Amazon search CTA when live */}
           {isLive && amazonSearchUrl && (
-            <a
-              href={amazonSearchUrl}
-              target="_blank"
-              rel="noopener noreferrer nofollow"
-              className="mt-4 block bg-amber-50 border-2 border-amber-200 rounded-xl p-4 text-center hover:bg-amber-100 transition"
-            >
-              <p className="font-bold text-gray-900 text-sm">🔍 Search Amazon for {fullName} {cat.name}</p>
-              <p className="text-xs text-gray-500 mt-1">Compare Amazon prices for this part →</p>
-            </a>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <a
+                href={amazonSearchUrl}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="block bg-amber-50 border-2 border-amber-200 rounded-xl p-4 text-center hover:bg-amber-100 transition"
+              >
+                <p className="font-bold text-gray-900 text-sm">🔍 Search Amazon</p>
+                <p className="text-xs text-gray-500 mt-1">Compare Amazon prices →</p>
+              </a>
+              <a
+                href={getEuroCarPartsUrl(makeName, modelName, cat.name)}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="block bg-red-50 border-2 border-red-200 rounded-xl p-4 text-center hover:bg-red-100 transition"
+              >
+                <p className="font-bold text-gray-900 text-sm">🔍 Search Euro Car Parts</p>
+                <p className="text-xs text-gray-500 mt-1">Compare Euro Car Parts prices →</p>
+              </a>
+            </div>
           )}
 
           {sorted.length === 0 && (
@@ -640,7 +690,8 @@ function MakeModelCategoryContent() {
 
       {/* Affiliate disclosure */}
       <p className="mt-8 text-center text-xs text-gray-400">
-        As an Amazon Associate and eBay Partner, CarPartsCompare earns from qualifying purchases.
+        As an Amazon Associate, eBay Partner, and Awin affiliate, CarPartsCompare earns from qualifying purchases.
+        See our <Link href="/affiliate-disclosure" className="underline hover:text-gray-600">affiliate disclosure</Link>.
       </p>
     </div>
   );
