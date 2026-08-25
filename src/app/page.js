@@ -289,10 +289,9 @@ export default function HomePage() {
             <h3 className="text-lg font-bold text-gray-900 pt-2">Trusted UK Retailers</h3>
             <p>
               We compare prices from the UK's most popular car parts retailers including Amazon, eBay, Euro Car
-              Parts, GSF Car Parts, CarParts4Less, and Halfords. All retailers we list offer UK delivery, returns
-              policies, and genuine branded parts. Whether you prefer buying from a marketplace like Amazon for
-              Prime delivery, or a specialist like Euro Car Parts for expert fitment advice, you'll find the
-              best price here.
+              Parts, and GSF Car Parts. All retailers we list offer UK delivery, returns policies, and genuine
+              branded parts. Whether you prefer buying from a marketplace like Amazon for Prime delivery, or a
+              specialist like Euro Car Parts for expert fitment advice, you'll find the best price here.
             </p>
 
             <h3 className="text-lg font-bold text-gray-900 pt-2">Most Popular Car Parts Searches</h3>
