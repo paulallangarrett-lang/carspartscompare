@@ -4,6 +4,7 @@ import { getArticles } from '@/lib/rapidapi';
 import { CATEGORY_MAP } from '@/lib/categories';
 import { MOCK_PARTS, BRAND_TIERS, CATEGORY_PRICES } from '@/lib/mock-data';
 import { searchEbayParts, isEbayConfigured } from '@/lib/ebay-api';
+import { matchRetailerPrices } from '@/lib/retailer-pricing';
 
 const AMAZON_TAG = process.env.AMAZON_ASSOCIATE_TAG || 'carpartscomp-21';
 const AWIN_PUBLISHER_ID = '2771194';
@@ -120,7 +121,7 @@ async function getEbayPriceForPart(brand, partNumber, categoryName) {
   return null;
 }
 
-function formatPart(p, categoryName, categorySlug, ebayData, make, model) {
+function formatPart(p, categoryName, categorySlug, ebayData, make, model, retailerMatch) {
   const artNo = p.articleNumber || p.articleNo || '';
   const brand = p.supplierName || '';
   const searchTerm = `${brand} ${artNo}`.trim();
@@ -128,8 +129,13 @@ function formatPart(p, categoryName, categorySlug, ebayData, make, model) {
   const cleanPartNo = artNo.replace(/[\s\/\-]/g, '');
   const cleanSearchTerm = `${brand} ${cleanPartNo}`.trim();
   const estimated = estimatePrice(brand, categorySlug);
-  const euroCarPartsUrl = getEuroCarPartsUrl(make, model, categoryName);
-  const gsfCarPartsUrl = getGsfCarPartsUrl(make, model, categoryName);
+
+  // Use a real matched price + product link when the retailer's own datafeed
+  // shows they stock this exact part; otherwise fall back to a plain search link.
+  const euroCarPartsUrl = retailerMatch?.euroUrl || getEuroCarPartsUrl(make, model, categoryName);
+  const gsfCarPartsUrl = retailerMatch?.gsfUrl || getGsfCarPartsUrl(make, model, categoryName);
+  const euroCarPartsPrice = retailerMatch?.euroPrice ?? null;
+  const gsfCarPartsPrice = retailerMatch?.gsfPrice ?? null;
 
   // If we have live eBay data, use it
   if (ebayData) {
@@ -145,6 +151,8 @@ function formatPart(p, categoryName, categorySlug, ebayData, make, model) {
       ebayUrl: ebaySearchUrl,
       euroCarPartsUrl,
       gsfCarPartsUrl,
+      euroCarPartsPrice,
+      gsfCarPartsPrice,
       amazonPrice: estimated,
       ebayPrice: ebayData.price,
       priceType: 'live',
@@ -174,6 +182,8 @@ function formatPart(p, categoryName, categorySlug, ebayData, make, model) {
     ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(cleanSearchTerm)}&_sop=15`,
     euroCarPartsUrl,
     gsfCarPartsUrl,
+    euroCarPartsPrice,
+    gsfCarPartsPrice,
     amazonPrice: estimated,
     ebayPrice: ebayEstimated,
     priceType: 'estimated',
@@ -285,13 +295,34 @@ export async function GET(request) {
     }
   }
 
+  // Look up real Euro Car Parts / GSF Car Parts prices in parallel (matches
+  // against a pre-built index of their AWIN product datafeeds — see
+  // src/lib/retailer-pricing.js). Falls back to plain search links per-part
+  // when there's no confident match.
+  const retailerResults = new Map();
+  try {
+    const retailerLookups = rawParts.slice(0, 12).map(p => {
+      const artNo = p.articleNumber || p.articleNo || '';
+      const key = (p.articleId || artNo).toString();
+      if (!artNo) return Promise.resolve({ key: '', data: null });
+      return matchRetailerPrices(artNo).then(data => ({ key, data }));
+    });
+    const results = await Promise.all(retailerLookups);
+    for (const { key, data } of results) {
+      if (key && data) retailerResults.set(key, data);
+    }
+  } catch (err) {
+    console.error('Retailer price matching failed:', err.message);
+  }
+
   // Format parts with eBay data where available
   const vMake = vehicle?.make || '';
   const vModel = vehicle?.model || '';
   const parts = rawParts.map(p => {
     const key = (p.articleId || p.articleNumber || p.articleNo || '').toString();
     const ebayData = ebayResults.get(key) || null;
-    return formatPart(p, cat.name, category, ebayData, vMake, vModel);
+    const retailerMatch = retailerResults.get(key) || null;
+    return formatPart(p, cat.name, category, ebayData, vMake, vModel, retailerMatch);
   });
 
   const response = {
