@@ -9,14 +9,32 @@ import { Readable } from 'stream';
 // file. Triggered daily by Vercel Cron (see vercel.json) and protected by
 // CRON_SECRET. Can also be fired manually with the same secret.
 //
-// Index shape: { updatedAt, gsf: { "<suffix6>": [[mpnNorm, price, awProductId], ...] },
-//                             euro: { "<suffix6>": [[codeNorm, price, awProductId], ...] } }
+// Index shape: { updatedAt, gsf: { "<suffix6>": [[mpnNorm, price, trackedUrl], ...] },
+//                             euro: { "<suffix6>": [[codeNorm, price, trackedUrl], ...] } }
+//
+// GSF's feed lists the SAME physical part as one row PER vehicle fitment
+// (e.g. "Oil Filter ... Fits: CHRYSLER PT CRUISER", "... Fits: DODGE NITRO"),
+// each with its own aw_product_id / aw_deep_link pointing at a fitment-specific
+// landing page. Linking to whichever fitment row happened to match first sent
+// customers to a page for someone else's vehicle. merchant_deep_link is the
+// canonical, non-fitment-specific product URL GSF itself uses, shared across
+// every fitment row for the same part — we wrap that in Awin's generic
+// tracking redirect (cread.php) instead of using the fitment-specific
+// aw_deep_link, and dedupe by mpn so each part is stored once.
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
+const AWIN_PUBLISHER_ID = '2771194';
+
 function normalize(s) {
   return (s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+// Wraps a merchant's own product URL in Awin's generic tracked-click
+// redirect, since merchant_deep_link itself carries no affiliate tracking.
+function trackedUrl(merchantId, destUrl) {
+  return `https://www.awin1.com/cread.php?awinmid=${merchantId}&awinaffid=${AWIN_PUBLISHER_ID}&clickref=&p=${encodeURIComponent(destUrl)}`;
 }
 
 const EURO_CODE_RE = /\|\s*([A-Za-z0-9\-./]{3,20})\s*\|/;
@@ -31,6 +49,7 @@ async function fetchAndParseFeed() {
 
   const gsf = {};
   const euro = {};
+  const gsfSeenMpn = new Set();
 
   // Stream: HTTP response -> gunzip -> CSV parser. The decompressed CSV is
   // ~750MB, well past Node/V8's max string length, so this must never be
@@ -52,17 +71,27 @@ async function fetchAndParseFeed() {
     if (merch === 'GSF Car Parts') {
       const mpn = normalize(row.mpn);
       if (mpn.length < 6) continue;
+      // Same physical part appears once per vehicle fitment — keep only the
+      // first (fitment-agnostic) row we see for each mpn.
+      if (gsfSeenMpn.has(mpn)) continue;
+      const dest = row.merchant_deep_link || row.aw_deep_link;
+      if (!dest) continue;
+      gsfSeenMpn.add(mpn);
       const key = mpn.slice(-6);
       const list = gsf[key] || (gsf[key] = []);
-      if (list.length < 4) list.push([mpn, Math.round(price * 100) / 100, pid]);
+      if (list.length < 4) {
+        const url = row.merchant_deep_link ? trackedUrl(row.merchant_id, dest) : dest;
+        list.push([mpn, Math.round(price * 100) / 100, url]);
+      }
     } else if (merch === 'Euro Car Parts') {
       const m = EURO_CODE_RE.exec(row.product_name || '');
       if (!m) continue;
       const code = normalize(m[1]);
       if (code.length < 5) continue;
+      if (!row.aw_deep_link) continue;
       const key = code.length >= 6 ? code.slice(-6) : code;
       const list = euro[key] || (euro[key] = []);
-      if (list.length < 4) list.push([code, Math.round(price * 100) / 100, pid]);
+      if (list.length < 4) list.push([code, Math.round(price * 100) / 100, row.aw_deep_link]);
     }
   }
 
