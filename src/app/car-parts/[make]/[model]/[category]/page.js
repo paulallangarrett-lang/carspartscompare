@@ -11,11 +11,18 @@ import { ModelInsights } from '@/components/ModelInsights';
 const AMAZON_TAG = 'carpartscomp-21';
 const AWIN_PUBLISHER_ID = '2771194';
 const EUROCARPARTS_MERCHANT_ID = '3997';
+const GSF_MERCHANT_ID = '12707';
 
 function getEuroCarPartsUrl(make, model, categoryName) {
   const searchTerm = `${make} ${model} ${categoryName}`.trim();
   const destUrl = `https://www.eurocarparts.com/search?q=${encodeURIComponent(searchTerm)}`;
   return `https://www.awin1.com/cread.php?awinmid=${EUROCARPARTS_MERCHANT_ID}&awinaffid=${AWIN_PUBLISHER_ID}&ued=${encodeURIComponent(destUrl)}`;
+}
+
+function getGsfCarPartsUrl(make, model, categoryName) {
+  const searchTerm = `${make} ${model} ${categoryName}`.trim();
+  const destUrl = `https://www.gsfcarparts.com/catalogsearch/result/?q=${encodeURIComponent(searchTerm)}`;
+  return `https://www.awin1.com/cread.php?awinmid=${GSF_MERCHANT_ID}&awinaffid=${AWIN_PUBLISHER_ID}&ued=${encodeURIComponent(destUrl)}`;
 }
 
 const TIER_LABELS = {
@@ -148,6 +155,7 @@ function MakeModelCategoryContent() {
       amazonUrl: `https://www.amazon.co.uk/s?k=${encodeURIComponent(searchTerm)}&tag=${AMAZON_TAG}`,
       ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(searchTerm)}`,
       euroCarPartsUrl: getEuroCarPartsUrl(makeName, modelName, cat.name),
+      gsfCarPartsUrl: getGsfCarPartsUrl(makeName, modelName, cat.name),
       priceType: 'estimated',
     };
   });
@@ -381,6 +389,16 @@ function MakeModelCategoryContent() {
                           <span className="font-medium text-gray-700 text-sm">Check price</span>
                           <span className="text-xs text-red-600">View →</span>
                         </a>
+                        <a
+                          href={part.gsfCarPartsUrl || getGsfCarPartsUrl(makeName, modelName, cat.name)}
+                          target="_blank"
+                          rel="noopener noreferrer nofollow"
+                          className="flex flex-col items-center bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 hover:bg-emerald-100 transition min-w-[100px]"
+                        >
+                          <span className="text-xs text-gray-500">GSF Car Parts</span>
+                          <span className="font-medium text-gray-700 text-sm">Check price</span>
+                          <span className="text-xs text-emerald-600">View →</span>
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -457,6 +475,16 @@ function MakeModelCategoryContent() {
                           <span className="font-medium text-gray-700 text-sm">Check price</span>
                           <span className="text-xs text-red-600">View →</span>
                         </a>
+                        <a
+                          href={getGsfCarPartsUrl(makeName, modelName, cat.name)}
+                          target="_blank"
+                          rel="noopener noreferrer nofollow"
+                          className="flex flex-col items-center bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 hover:bg-emerald-100 transition min-w-[100px]"
+                        >
+                          <span className="text-xs text-gray-500">GSF Car Parts</span>
+                          <span className="font-medium text-gray-700 text-sm">Check price</span>
+                          <span className="text-xs text-emerald-600">View →</span>
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -518,6 +546,16 @@ function MakeModelCategoryContent() {
                         <span className="font-medium text-gray-700 text-sm">Check price</span>
                         <span className="text-xs text-red-600">View →</span>
                       </a>
+                      <a
+                        href={part.gsfCarPartsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer nofollow"
+                        className="flex flex-col items-center bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 hover:bg-emerald-100 transition min-w-[100px]"
+                      >
+                        <span className="text-xs text-gray-500">GSF Car Parts</span>
+                        <span className="font-medium text-gray-700 text-sm">Check price</span>
+                        <span className="text-xs text-emerald-600">View →</span>
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -527,7 +565,7 @@ function MakeModelCategoryContent() {
 
           {/* Amazon search CTA when live */}
           {isLive && amazonSearchUrl && (
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
               <a
                 href={amazonSearchUrl}
                 target="_blank"
@@ -545,6 +583,15 @@ function MakeModelCategoryContent() {
               >
                 <p className="font-bold text-gray-900 text-sm">🔍 Search Euro Car Parts</p>
                 <p className="text-xs text-gray-500 mt-1">Compare Euro Car Parts prices →</p>
+              </a>
+              <a
+                href={getGsfCarPartsUrl(makeName, modelName, cat.name)}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="block bg-emerald-50 border-2 border-emerald-200 rounded-xl p-4 text-center hover:bg-emerald-100 transition"
+              >
+                <p className="font-bold text-gray-900 text-sm">🔍 Search GSF Car Parts</p>
+                <p className="text-xs text-gray-500 mt-1">Compare GSF Car Parts prices →</p>
               </a>
             </div>
           )}
