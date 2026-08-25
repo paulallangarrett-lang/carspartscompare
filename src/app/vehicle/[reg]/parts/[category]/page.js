@@ -58,7 +58,13 @@ export default function PartsPage() {
     ? parts.filter(p => selectedBrands.includes(p.supplierName))
     : parts;
 
+  // Rank parts by retailer price coverage first: both GSF + Euro Car Parts
+  // priced beats one of them beats neither. Ties broken by the chosen sort.
+  const retailerScore = (p) => (p.gsfCarPartsPrice ? 1 : 0) + (p.euroCarPartsPrice ? 1 : 0);
+
   const sortedParts = [...filteredParts].sort((a, b) => {
+    const scoreDiff = retailerScore(b) - retailerScore(a);
+    if (scoreDiff !== 0) return scoreDiff;
     if (sortBy === 'price-low') return (a.amazonPrice || 999) - (b.amazonPrice || 999);
     if (sortBy === 'price-high') return (b.amazonPrice || 0) - (a.amazonPrice || 0);
     if (sortBy === 'brand') return (a.supplierName || '').localeCompare(b.supplierName || '');
