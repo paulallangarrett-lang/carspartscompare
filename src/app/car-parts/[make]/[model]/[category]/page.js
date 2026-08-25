@@ -386,7 +386,11 @@ function MakeModelCategoryContent() {
                           className="flex flex-col items-center bg-red-50 border border-red-200 rounded-lg px-4 py-2 hover:bg-red-100 transition min-w-[100px]"
                         >
                           <span className="text-xs text-gray-500">Euro Car Parts</span>
-                          <span className="font-medium text-gray-700 text-sm">Check price</span>
+                          {part.euroCarPartsPrice ? (
+                            <span className="font-bold text-gray-900">£{part.euroCarPartsPrice.toFixed(2)}</span>
+                          ) : (
+                            <span className="font-medium text-gray-700 text-sm">Check price</span>
+                          )}
                           <span className="text-xs text-red-600">View →</span>
                         </a>
                         <a
@@ -396,7 +400,11 @@ function MakeModelCategoryContent() {
                           className="flex flex-col items-center bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 hover:bg-emerald-100 transition min-w-[100px]"
                         >
                           <span className="text-xs text-gray-500">GSF Car Parts</span>
-                          <span className="font-medium text-gray-700 text-sm">Check price</span>
+                          {part.gsfCarPartsPrice ? (
+                            <span className="font-bold text-gray-900">£{part.gsfCarPartsPrice.toFixed(2)}</span>
+                          ) : (
+                            <span className="font-medium text-gray-700 text-sm">Check price</span>
+                          )}
                           <span className="text-xs text-emerald-600">View →</span>
                         </a>
                       </div>
