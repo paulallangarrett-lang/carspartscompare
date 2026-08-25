@@ -132,8 +132,19 @@ function formatPart(p, categoryName, categorySlug, ebayData, make, model, retail
 
   // Use a real matched price + product link when the retailer's own datafeed
   // shows they stock this exact part; otherwise fall back to a plain search link.
+  //
+  // GSF's own reg-based fitment checker can disagree with the specific SKU we
+  // matched by part number — the same nominal part/category sometimes has
+  // more than one GSF product code depending on the exact vehicle derivative,
+  // and GSF's fitment data (which we don't have access to) is the authority,
+  // not a bare mpn text match. Linking straight to that SKU risks landing
+  // customers on a page GSF itself flags as "doesn't fit your vehicle". So we
+  // always send GSF clicks to their search results (safe, fitment-checked by
+  // GSF once the customer enters their reg there) while still showing the
+  // real matched price as an indicative "from" figure. Euro Car Parts isn't
+  // split by fitment in its feed, so its direct product link stays exact.
   const euroCarPartsUrl = retailerMatch?.euroUrl || getEuroCarPartsUrl(make, model, categoryName);
-  const gsfCarPartsUrl = retailerMatch?.gsfUrl || getGsfCarPartsUrl(make, model, categoryName);
+  const gsfCarPartsUrl = getGsfCarPartsUrl(make, model, categoryName);
   const euroCarPartsPrice = retailerMatch?.euroPrice ?? null;
   const gsfCarPartsPrice = retailerMatch?.gsfPrice ?? null;
 
