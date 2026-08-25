@@ -258,6 +258,32 @@ export default function PartsPage() {
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                           </span>
                         </a>
+                        {part.euroCarPartsUrl && (
+                          <a
+                            href={part.euroCarPartsUrl}
+                            target="_blank"
+                            rel="nofollow noopener"
+                            className="inline-flex flex-col items-center bg-white border border-red-200 hover:bg-red-50 text-gray-800 text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm min-w-[90px]"
+                          >
+                            <span className="text-xs text-gray-500">Check price</span>
+                            <span className="flex items-center gap-1 text-xs text-red-600">
+                              Euro Car Parts
+                            </span>
+                          </a>
+                        )}
+                        {part.gsfCarPartsUrl && (
+                          <a
+                            href={part.gsfCarPartsUrl}
+                            target="_blank"
+                            rel="nofollow noopener"
+                            className="inline-flex flex-col items-center bg-white border border-emerald-200 hover:bg-emerald-50 text-gray-800 text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm min-w-[90px]"
+                          >
+                            <span className="text-xs text-gray-500">Check price</span>
+                            <span className="flex items-center gap-1 text-xs text-emerald-600">
+                              GSF Car Parts
+                            </span>
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>
