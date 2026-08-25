@@ -163,8 +163,14 @@ function MakeModelCategoryContent() {
   // Choose display parts
   const displayParts = hasTecDoc ? tecDocParts : isLive ? liveParts : mockParts;
 
+  // Rank parts by retailer price coverage first: both GSF + Euro Car Parts
+  // priced beats one of them beats neither. Ties broken by the chosen sort.
+  const retailerScore = (p) => (p.gsfCarPartsPrice ? 1 : 0) + (p.euroCarPartsPrice ? 1 : 0);
+
   // Sort
   const sorted = [...displayParts].sort((a, b) => {
+    const scoreDiff = retailerScore(b) - retailerScore(a);
+    if (scoreDiff !== 0) return scoreDiff;
     if (hasTecDoc) {
       const aPrice = Math.min(a.amazonPrice || 999, a.ebayPrice || 999);
       const bPrice = Math.min(b.amazonPrice || 999, b.ebayPrice || 999);
