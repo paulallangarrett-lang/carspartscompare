@@ -6,6 +6,21 @@ import { MOCK_PARTS, BRAND_TIERS, CATEGORY_PRICES } from '@/lib/mock-data';
 import { searchEbayParts, isEbayConfigured } from '@/lib/ebay-api';
 
 const AMAZON_TAG = process.env.AMAZON_ASSOCIATE_TAG || 'carpartscomp-21';
+const AWIN_PUBLISHER_ID = '2771194';
+const EUROCARPARTS_MERCHANT_ID = '3997';
+const GSF_MERCHANT_ID = '12707';
+
+function getEuroCarPartsUrl(make, model, categoryName) {
+  const searchTerm = `${make || ''} ${model || ''} ${categoryName}`.trim();
+  const destUrl = `https://www.eurocarparts.com/search?q=${encodeURIComponent(searchTerm)}`;
+  return `https://www.awin1.com/cread.php?awinmid=${EUROCARPARTS_MERCHANT_ID}&awinaffid=${AWIN_PUBLISHER_ID}&ued=${encodeURIComponent(destUrl)}`;
+}
+
+function getGsfCarPartsUrl(make, model, categoryName) {
+  const searchTerm = `${make || ''} ${model || ''} ${categoryName}`.trim();
+  const destUrl = `https://www.gsfcarparts.com/catalogsearch/result/?q=${encodeURIComponent(searchTerm)}`;
+  return `https://www.awin1.com/cread.php?awinmid=${GSF_MERCHANT_ID}&awinaffid=${AWIN_PUBLISHER_ID}&ued=${encodeURIComponent(destUrl)}`;
+}
 
 // Cache eBay results by part number (survives within same serverless instance)
 const ebayCache = new Map();
@@ -105,7 +120,7 @@ async function getEbayPriceForPart(brand, partNumber, categoryName) {
   return null;
 }
 
-function formatPart(p, categoryName, categorySlug, ebayData) {
+function formatPart(p, categoryName, categorySlug, ebayData, make, model) {
   const artNo = p.articleNumber || p.articleNo || '';
   const brand = p.supplierName || '';
   const searchTerm = `${brand} ${artNo}`.trim();
@@ -113,6 +128,8 @@ function formatPart(p, categoryName, categorySlug, ebayData) {
   const cleanPartNo = artNo.replace(/[\s\/\-]/g, '');
   const cleanSearchTerm = `${brand} ${cleanPartNo}`.trim();
   const estimated = estimatePrice(brand, categorySlug);
+  const euroCarPartsUrl = getEuroCarPartsUrl(make, model, categoryName);
+  const gsfCarPartsUrl = getGsfCarPartsUrl(make, model, categoryName);
 
   // If we have live eBay data, use it
   if (ebayData) {
@@ -126,6 +143,8 @@ function formatPart(p, categoryName, categorySlug, ebayData) {
       imageUrl: ebayData.image || p.imageUrl || p.images?.[0]?.imageURL200 || null,
       amazonUrl: `https://www.amazon.co.uk/s?k=${encodeURIComponent(searchTerm)}&tag=${AMAZON_TAG}`,
       ebayUrl: ebaySearchUrl,
+      euroCarPartsUrl,
+      gsfCarPartsUrl,
       amazonPrice: estimated,
       ebayPrice: ebayData.price,
       priceType: 'live',
@@ -153,6 +172,8 @@ function formatPart(p, categoryName, categorySlug, ebayData) {
     imageUrl: p.imageUrl || p.images?.[0]?.imageURL200 || null,
     amazonUrl: `https://www.amazon.co.uk/s?k=${encodeURIComponent(searchTerm)}&tag=${AMAZON_TAG}`,
     ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(cleanSearchTerm)}&_sop=15`,
+    euroCarPartsUrl,
+    gsfCarPartsUrl,
     amazonPrice: estimated,
     ebayPrice: ebayEstimated,
     priceType: 'estimated',
@@ -265,10 +286,12 @@ export async function GET(request) {
   }
 
   // Format parts with eBay data where available
+  const vMake = vehicle?.make || '';
+  const vModel = vehicle?.model || '';
   const parts = rawParts.map(p => {
     const key = (p.articleId || p.articleNumber || p.articleNo || '').toString();
     const ebayData = ebayResults.get(key) || null;
-    return formatPart(p, cat.name, category, ebayData);
+    return formatPart(p, cat.name, category, ebayData, vMake, vModel);
   });
 
   const response = {
