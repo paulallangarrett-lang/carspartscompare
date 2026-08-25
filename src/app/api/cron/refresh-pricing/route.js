@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import zlib from 'zlib';
 import { parse } from 'csv-parse';
+import { Readable } from 'stream';
 
 // Rebuilds the Euro Car Parts / GSF Car Parts price-matching index from their
 // AWIN product datafeeds and uploads it to Vercel Blob as a small gzip JSON
@@ -26,14 +27,21 @@ async function fetchAndParseFeed() {
 
   const res = await fetch(feedUrl);
   if (!res.ok) throw new Error(`Datafeed fetch failed: ${res.status}`);
-
-  const buf = Buffer.from(await res.arrayBuffer());
-  const csvText = zlib.gunzipSync(buf).toString('utf-8');
+  if (!res.body) throw new Error('Datafeed response has no body');
 
   const gsf = {};
   const euro = {};
 
-  const parser = parse(csvText, { columns: true, skip_empty_lines: true, relax_quotes: true });
+  // Stream: HTTP response -> gunzip -> CSV parser. The decompressed CSV is
+  // ~750MB, well past Node/V8's max string length, so this must never be
+  // materialized as a single string or buffer.
+  const nodeStream = Readable.fromWeb(res.body);
+  const gunzip = zlib.createGunzip();
+  const parser = parse({ columns: true, skip_empty_lines: true, relax_quotes: true });
+
+  nodeStream.on('error', (err) => parser.destroy(err));
+  gunzip.on('error', (err) => parser.destroy(err));
+  nodeStream.pipe(gunzip).pipe(parser);
 
   for await (const row of parser) {
     const merch = row.merchant_name;
