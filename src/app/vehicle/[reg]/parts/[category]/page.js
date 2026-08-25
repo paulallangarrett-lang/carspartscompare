@@ -263,9 +263,13 @@ export default function PartsPage() {
                             href={part.euroCarPartsUrl}
                             target="_blank"
                             rel="nofollow noopener"
-                            className="inline-flex flex-col items-center bg-white border border-red-200 hover:bg-red-50 text-gray-800 text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm min-w-[90px]"
+                            className={`inline-flex flex-col items-center border text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm min-w-[90px] ${part.euroCarPartsPrice ? 'bg-red-50 border-red-200 hover:bg-red-100 text-gray-900' : 'bg-white border-red-200 hover:bg-red-50 text-gray-800'}`}
                           >
-                            <span className="text-xs text-gray-500">Check price</span>
+                            {part.euroCarPartsPrice ? (
+                              <span className="text-base font-bold">£{part.euroCarPartsPrice.toFixed(2)}</span>
+                            ) : (
+                              <span className="text-xs text-gray-500">Check price</span>
+                            )}
                             <span className="flex items-center gap-1 text-xs text-red-600">
                               Euro Car Parts
                             </span>
@@ -276,9 +280,13 @@ export default function PartsPage() {
                             href={part.gsfCarPartsUrl}
                             target="_blank"
                             rel="nofollow noopener"
-                            className="inline-flex flex-col items-center bg-white border border-emerald-200 hover:bg-emerald-50 text-gray-800 text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm min-w-[90px]"
+                            className={`inline-flex flex-col items-center border text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm min-w-[90px] ${part.gsfCarPartsPrice ? 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100 text-gray-900' : 'bg-white border-emerald-200 hover:bg-emerald-50 text-gray-800'}`}
                           >
-                            <span className="text-xs text-gray-500">Check price</span>
+                            {part.gsfCarPartsPrice ? (
+                              <span className="text-base font-bold">£{part.gsfCarPartsPrice.toFixed(2)}</span>
+                            ) : (
+                              <span className="text-xs text-gray-500">Check price</span>
+                            )}
                             <span className="flex items-center gap-1 text-xs text-emerald-600">
                               GSF Car Parts
                             </span>
