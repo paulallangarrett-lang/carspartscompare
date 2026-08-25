@@ -289,7 +289,10 @@ export default function PartsPage() {
                             className={`inline-flex flex-col items-center border text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm min-w-[90px] ${part.gsfCarPartsPrice ? 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100 text-gray-900' : 'bg-white border-emerald-200 hover:bg-emerald-50 text-gray-800'}`}
                           >
                             {part.gsfCarPartsPrice ? (
-                              <span className="text-base font-bold">£{part.gsfCarPartsPrice.toFixed(2)}</span>
+                              <>
+                                <span className="text-xs text-gray-500">from</span>
+                                <span className="text-base font-bold">£{part.gsfCarPartsPrice.toFixed(2)}</span>
+                              </>
                             ) : (
                               <span className="text-xs text-gray-500">Check price</span>
                             )}
