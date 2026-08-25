@@ -7,20 +7,17 @@
 // exposes a lookup used to attach a real price + product link to a part when
 // the retailer actually stocks it. When there's no confident match, callers
 // should fall back to a plain AWIN search link (no price shown).
-
-const AWIN_PUBLISHER_ID = '2771194';
-const EUROCARPARTS_MERCHANT_ID = '3997';
-const GSF_MERCHANT_ID = '12707';
+//
+// The index stores a ready-to-use tracked URL per entry (built at index-build
+// time — see route.js for why GSF entries use merchant_deep_link wrapped in
+// Awin's cread.php redirect rather than the fitment-specific aw_deep_link),
+// so this module just reads it straight through.
 
 let cache = null; // { data, fetchedAt }
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 function normalize(s) {
   return (s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-}
-
-function buildDeepLink(merchantId, awProductId) {
-  return `https://www.awin1.com/pclick.php?p=${awProductId}&a=${AWIN_PUBLISHER_ID}&m=${merchantId}`;
 }
 
 async function loadIndex() {
@@ -47,9 +44,9 @@ function lookupIn(bucketMap, partNumber) {
   const key = norm.slice(-6);
   const candidates = bucketMap?.[key];
   if (!candidates) return null;
-  for (const [mpn, price, awProductId] of candidates) {
+  for (const [mpn, price, url] of candidates) {
     if (mpn.endsWith(norm) || norm.endsWith(mpn)) {
-      return { price, awProductId };
+      return { price, url };
     }
   }
   return null;
@@ -66,13 +63,13 @@ export async function matchRetailerPrices(partNumber) {
   const gsfMatch = lookupIn(index.gsf, partNumber);
   if (gsfMatch) {
     result.gsfPrice = gsfMatch.price;
-    result.gsfUrl = buildDeepLink(GSF_MERCHANT_ID, gsfMatch.awProductId);
+    result.gsfUrl = gsfMatch.url;
   }
 
   const euroMatch = lookupIn(index.euro, partNumber);
   if (euroMatch) {
     result.euroPrice = euroMatch.price;
-    result.euroUrl = buildDeepLink(EUROCARPARTS_MERCHANT_ID, euroMatch.awProductId);
+    result.euroUrl = euroMatch.url;
   }
 
   return result;
