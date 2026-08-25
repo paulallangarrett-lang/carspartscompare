@@ -407,7 +407,7 @@ function MakeModelCategoryContent() {
                         >
                           <span className="text-xs text-gray-500">GSF Car Parts</span>
                           {part.gsfCarPartsPrice ? (
-                            <span className="font-bold text-gray-900">£{part.gsfCarPartsPrice.toFixed(2)}</span>
+                            <span className="font-bold text-gray-900">from £{part.gsfCarPartsPrice.toFixed(2)}</span>
                           ) : (
                             <span className="font-medium text-gray-700 text-sm">Check price</span>
                           )}
